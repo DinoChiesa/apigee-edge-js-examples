@@ -89,12 +89,12 @@ Deploy to multiple environments:
 
 # Undeploy all revisions of a proxy from all environments
 ```
-.//undeployAndMaybeDelete.js -v -n -o $ORG -P jsonpath-extract
+./undeployAndMaybeDelete.js -v -n -o $ORG -P jsonpath-extract
 ```
 
 # Undeploy all revisions of a proxy and delete it
 ```
-.//undeployAndMaybeDelete.js -v -n -o $ORG -P jsonpath-extract -D
+./undeployAndMaybeDelete.js -v -n -o $ORG -P jsonpath-extract -D
 ```
 
 # Create a product
