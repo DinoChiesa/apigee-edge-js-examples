@@ -1,6 +1,6 @@
 # Example Tools for Apigee Edge
 
-These are example tools implemented in nodejs/Javascript, that use the apigee-edge-js library.
+These are example tools implemented in nodejs/Javascript, that use the [apigee-edge-js](https://github.com/DinoChiesa/apigee-edge-js) library.
 
 They all can retrieve credentials from a .netrc file, or you can pass in user credentials interactively.
 Also, they use the OAuth authentication mechanism for Apigee Edge.
@@ -8,7 +8,7 @@ Also, they use the OAuth authentication mechanism for Apigee Edge.
 ## Disclaimer
 
 These tools are not an official Google product, nor are they part of an official Google product, nor are they included under any Google support contract.
-Support is available on a best-effort basis via github or community.apigee.com .
+Support is available on a best-effort basis via github or [community.apigee.com](https://community.apigee.com) .
 
 
 # Common options
