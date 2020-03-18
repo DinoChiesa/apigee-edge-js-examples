@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------
 // undeploy and maybe delete an Apigee Edge proxy that has a name with a specific prefix.
 //
-// Copyright 2017-2018 Google LLC.
+// Copyright 2017-2020 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-February-11 12:51:33>
+// last saved: <2020-March-17 19:55:07>
+/* jslint esversion:9 */
 
 const edgejs     = require('apigee-edge-js'),
       common     = edgejs.utility,
@@ -32,34 +33,31 @@ const edgejs     = require('apigee-edge-js'),
 
 // ========================================================
 
-// This script uses the Array.reduce() function extensively,
-// to serially perform the asynchronous requests and responses for the various
-// proxies, revisions, and environments.
-// See https://decembersoft.com/posts/promises-in-serial-with-array-reduce/
-
 function revEnvReducer(org, name, revision) {
-  return (p, env) =>
-    p.then( () => org.proxies.undeploy({name, revision, environment: env.name}));
+  return (p, deployment) =>
+    p.then( () => org.proxies.undeploy({name, revision, environment: deployment.environment}));
 }
 
 function revReducer(org, name) {
   return (p, revision) =>
-    p.then( () =>
+    p.then( _ =>
             org.proxies.getDeployments({ name, revision })
-            .then( (deployments) => deployments.environment )
-            .then( (environments) =>
-                   (environments && environments.length > 0)?
-                   environments.reduce(revEnvReducer(org, name, revision), Promise.resolve()) :
-                   {} ));
+            .then( r => r.deployments )
+            .then( deployments => {
+              console.log('deployments: ' + JSON.stringify(deployments));
+              return (deployments && deployments.length > 0) ?
+                deployments.reduce(revEnvReducer(org, name, revision), Promise.resolve()) :
+                {};
+            }));
 }
 
 function proxyReducer(org) {
-  return (p, name) =>
-    p.then( () =>
-            org.proxies.getRevisions({ name })
-            .then( (revisions) =>
-                   revisions.reduce(revReducer(org, name), Promise.resolve()))
-            .then( () => (opt.options.delete) ? org.proxies.del({ name }) : {} ));
+  return (p, item) =>
+    p.then( _ =>
+            org.proxies.getRevisions({ name: item.name })
+            .then( revisions =>
+                   revisions.reduce(revReducer(org, item.name), Promise.resolve()))
+            .then( _ => (opt.options.delete) ? org.proxies.del({ name: item.name }) : {} ));
 }
 
 console.log(
@@ -81,10 +79,12 @@ common.verifyCommonRequiredParameters(opt.options, getopt);
 apigeeEdge.connect(common.optToOptions(opt))
   .then( (org) => {
     org.proxies.get()
-      .then( (proxies) =>
-             proxies
-             .filter( name => name.startsWith(opt.options.prefix))
-             .reduce(proxyReducer(org), Promise.resolve()) )
+      .then( r => {
+        console.log('proxies: ' + JSON.stringify(r.proxies));
+        return r.proxies
+          .filter( p => p.name.startsWith(opt.options.prefix))
+          .reduce(proxyReducer(org), Promise.resolve()) ;
+      })
       .then( (results) => common.logWrite('all done...') )
       .catch( (e) => console.log('error: ' + e.stack));
   })
