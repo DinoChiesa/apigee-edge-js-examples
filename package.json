@@ -1,15 +1,19 @@
 {
   "name": "apigee-edge-js-examples",
-  "version": "0.4.16",
+  "version": "0.4.17",
   "description": "Examples for using the Apigee Edge nodeJS library",
   "main": "importAndDeploy.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/DinoChiesa/apigee-edge-js-examples.git"
+  },
   "author": "dchiesa@google.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "apigee-edge-js": ">=0.4.16",
+    "apigee-edge-js": ">=0.4.17",
     "async": "2.6.0",
     "merge": "1.2.1",
     "mkdirp": "1.0.3",

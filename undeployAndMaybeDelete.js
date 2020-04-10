@@ -18,10 +18,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-March-17 19:55:07>
+// last saved: <2020-April-07 22:15:42>
 /* jslint esversion:9 */
 
 const edgejs     = require('apigee-edge-js'),
+      util       = require('util'),
       common     = edgejs.utility,
       apigeeEdge = edgejs.edge,
       Getopt     = require('node-getopt'),
@@ -34,17 +35,20 @@ const edgejs     = require('apigee-edge-js'),
 // ========================================================
 
 function revEnvReducer(org, name, revision) {
-  return (p, deployment) =>
-    p.then( () => org.proxies.undeploy({name, revision, environment: deployment.environment}));
+  return (p, deployment) => {
+    //console.log('deployment: ' + util.format(deployment));
+    return p.then( () => org.proxies.undeploy({name, revision, environment: deployment.environment || deployment.name}));
+  };
 }
 
 function revReducer(org, name) {
   return (p, revision) =>
     p.then( _ =>
             org.proxies.getDeployments({ name, revision })
-            .then( r => r.deployments )
+            // morph to support GAAMBO or legacy API
+            .then( r => r.deployments || r.environment)
             .then( deployments => {
-              console.log('deployments: ' + JSON.stringify(deployments));
+              //console.log('deployments: ' + util.format(deployments));
               return (deployments && deployments.length > 0) ?
                 deployments.reduce(revEnvReducer(org, name, revision), Promise.resolve()) :
                 {};
@@ -54,10 +58,11 @@ function revReducer(org, name) {
 function proxyReducer(org) {
   return (p, item) =>
     p.then( _ =>
-            org.proxies.getRevisions({ name: item.name })
+            // morph to support GAAMBO or legacy API
+            org.proxies.getRevisions({ name: item.name || item})
             .then( revisions =>
-                   revisions.reduce(revReducer(org, item.name), Promise.resolve()))
-            .then( _ => (opt.options.delete) ? org.proxies.del({ name: item.name }) : {} ));
+                   revisions.reduce(revReducer(org, item.name || item), Promise.resolve()))
+            .then( _ => (opt.options.delete) ? org.proxies.del({ name: item.name || item}) : {} ));
 }
 
 console.log(
@@ -77,15 +82,18 @@ if ( ! opt.options.prefix ) {
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
 apigeeEdge.connect(common.optToOptions(opt))
-  .then( (org) => {
+  .then( (org) =>
     org.proxies.get()
       .then( r => {
-        console.log('proxies: ' + JSON.stringify(r.proxies));
-        return r.proxies
-          .filter( p => p.name.startsWith(opt.options.prefix))
+        //console.log('r: ' + JSON.stringify(r));
+        let [collection, predicate] = (r.proxies) ?
+          [r.proxies, (p) => p.name.startsWith(opt.options.prefix)] :
+          [r, p => p.startsWith(opt.options.prefix)];
+
+        return collection
+          .filter( p => predicate(p))
           .reduce(proxyReducer(org), Promise.resolve()) ;
       })
       .then( (results) => common.logWrite('all done...') )
-      .catch( (e) => console.log('error: ' + e.stack));
-  })
-  .catch( (e) => console.log('error: ' + e.stack));
+  )
+  .catch( e => console.log(util.format(e)));
