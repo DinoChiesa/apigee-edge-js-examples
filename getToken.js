@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------
 // authenticate, get a token suitable for use with the Apigee Edge Admin API.
 //
-// Copyright 2019 Google LLC.
+// Copyright 2019-2020 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,13 +18,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-September-05 15:24:02>
+// last saved: <2020-May-11 11:54:59>
 
 const edgejs     = require('apigee-edge-js'),
       common     = edgejs.utility,
       apigeeEdge = edgejs.edge,
       Getopt     = require('node-getopt'),
-      version    = '20190708-1607',
+      version    = '20200511-1133',
       getopt     = new Getopt(common.commonOptions).bindHelp();
 
 console.log(
@@ -36,8 +36,8 @@ var opt = getopt.parse(process.argv.slice(2));
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
 apigeeEdge.connect(common.optToOptions(opt))
-  .then( org => {
-    org.conn.getExistingToken()
+  .then( org =>
+      org.conn.getExistingToken()
       .then( existingToken => {
         if (opt.options.verbose) {
           console.log();
@@ -54,6 +54,5 @@ apigeeEdge.connect(common.optToOptions(opt))
           console.log( 'expires: ' + (new Date(claims.exp * 1000)).toISOString());
           console.log( 'client_id: ' + claims.client_id);
         }
-      });
-  })
+      }))
   .catch( e => console.error('error: ' + e) );
