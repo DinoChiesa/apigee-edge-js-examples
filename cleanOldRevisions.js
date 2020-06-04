@@ -5,7 +5,7 @@
 // In Apigee Edge, for all proxies or sharedflows in an org, remove all
 // but the latest N revisions. (Never remove a deployed revision).
 //
-// Copyright 2017-2019 Google LLC.
+// Copyright 2017-2020 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-September-25 17:05:57>
+// last saved: <2020-June-04 08:30:30>
 
 const edgejs     = require('apigee-edge-js'),
       common     = edgejs.utility,
@@ -28,7 +28,7 @@ const edgejs     = require('apigee-edge-js'),
       Getopt     = require('node-getopt'),
       merge      = require('merge'),
       util       = require('util'),
-      version    = '20190925-1705',
+      version    = '20200604-0830',
       getopt     = new Getopt(common.commonOptions.concat([
         ['R' , 'regexp=ARG', 'Optional. Cull only proxies with names matching this regexp.'],
         ['K' , 'numToKeep=ARG', 'Required. Max number of revisions of each proxy to retain.'],
@@ -95,7 +95,7 @@ apigeeEdge.connect(common.optToOptions(opt))
   .then ( org => {
     let readOptions = {};
     const collectionName = (opt.options.sharedflows) ? "sharedflows" : "proxies";
-    const collection = (opt.options.sharedflow) ? org.sharedflows : org.proxies;
+    const collection = (opt.options.sharedflows) ? org.sharedflows : org.proxies;
 
     return collection.get(readOptions)
       .then( results => {
