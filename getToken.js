@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-May-11 11:54:59>
+// last saved: <2020-May-11 16:03:49>
 
 const edgejs     = require('apigee-edge-js'),
       common     = edgejs.utility,
@@ -35,6 +35,9 @@ var opt = getopt.parse(process.argv.slice(2));
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
+// apigeeEdge.connect() will connect by using an existing token, or by
+// getting a new token, depending on the passed-in options as well as
+// the state of any existing (cached) access_token and refresh_token.
 apigeeEdge.connect(common.optToOptions(opt))
   .then( org =>
       org.conn.getExistingToken()
@@ -48,10 +51,11 @@ apigeeEdge.connect(common.optToOptions(opt))
               jwtparts = jwt.split(new RegExp('\\.')),
               payload = Buffer.from(jwtparts[1], 'base64').toString('utf-8'),
               claims = JSON.parse(payload);
-          console.log( '\nissuer: ' + claims.iss);
-          console.log( 'user: ' + claims.user_name);
+          console.log( '\nissuer   : ' + claims.iss);
+          console.log( 'user     : ' + claims.user_name);
           console.log( 'issued at: ' + (new Date(claims.iat * 1000)).toISOString());
-          console.log( 'expires: ' + (new Date(claims.exp * 1000)).toISOString());
+          console.log( 'expires  : ' + (new Date(claims.exp * 1000)).toISOString());
+          console.log( 'now      : ' + (new Date()).toISOString());
           console.log( 'client_id: ' + claims.client_id);
         }
       }))
