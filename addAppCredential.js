@@ -2,9 +2,13 @@
 /*jslint node:true */
 // addAppCredential.js
 // ------------------------------------------------------------------
-// add a new credential, generated or explicitly specified, to a developer app in Apigee Edge.
 //
-// Copyright 2017-2019 Google LLC.
+// Add a new credential to a developer app in Apigee Edge. If the developer app
+// does not exist, it is created.  The credential consists of a client id and
+// secret. You can explicitly specify either or both.
+//
+//
+// Copyright 2017-2020 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +22,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-January-28 18:08:53>
+// last saved: <2020-July-01 17:34:51>
 
 const edgejs     = require('apigee-edge-js'),
       common     = edgejs.utility,
@@ -26,35 +30,24 @@ const edgejs     = require('apigee-edge-js'),
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
       util       = require('util'),
-      version    = '20200128-1607',
+      version    = '20200701-1634',
+      credlengths = { MAX: 256, MIN: 16, DEFAULT: 52 },
+      defaults   = { credlength : credlengths.DEFAULT },
       getopt     = new Getopt(common.commonOptions.concat([
-      ['p' , 'product=ARG', 'required. name of the API product to enable on this app'],
-      ['E' , 'email=ARG', 'required. email address of the developer for which to create the app'],
-      ['A' , 'appname=ARG', 'required. name for the app'],
-      ['I' , 'clientid=ARG', 'optional. the client id for this credential. Default: auto-generated.'],
-      ['S' , 'secret=ARG', 'optional. the client secret for this credential. Default: auto-generated.'],
-      ['x' , 'expiry=ARG', 'optional. expiry for the credential']
+      ['p' , 'product=ARG', 'required. name of the API product to enable on this app, or a comma-separated list of names.'],
+      ['E' , 'email=ARG', 'required. email address of the developer for which to create the app.'],
+      ['A' , 'appname=ARG', 'required. name for the app.'],
+      ['I' , 'clientid=ARG', 'optional. the new client id to use for this credential. Default: auto-generated.'],
+      ['S' , 'secret=ARG', 'optional. the new client secret for this credential. Default: auto-generated.'],
+      ['L' , 'credlength=ARG', 'optional. the length for any generated credential: Default: ' + defaults.credlength],
+      ['x' , 'expiry=ARG', 'optional. expiry for the credential. Does not work with explicitly specified client id.']
     ])).bindHelp();
 
 function randomString(L){
-  L = L || 44;
+  L = L || defaults.credlength;
   let s = '';
   do {s += Math.random().toString(36).substring(2, 15); } while (s.length < L);
   return s.substring(0,L);
-}
-
-function addCred(org, options) {
-  return org.appcredentials.add(options)
-    .then (result => {
-      if (opt.options.clientid) {
-        common.logWrite(sprintf('new apikey %s', result.consumerKey));
-        common.logWrite(sprintf('secret %s', result.consumerSecret));
-      }
-      else {
-        common.logWrite(sprintf('new apikey %s', result.credentials[0].consumerKey));
-        common.logWrite(sprintf('secret %s', result.credentials[0].consumerSecret));
-      }
-    });
 }
 
 function ensureAppExists(org, options) {
@@ -65,22 +58,35 @@ function ensureAppExists(org, options) {
       let s = String(e);
       if (s == "Error: bad status: 404") {
         common.logWrite('That app does not exist.... creating it.');
-        let app = await org.developerapps.create(options);
-        //console.log(util.format(app));
-        let options2 = {
-              consumerKey : app.credentials[0].consumerKey,
-              appName : opt.options.appname,
-              developerEmail : opt.options.email
-            };
-        // delete the implicitly generated credential
-        return org.appcredentials.del(options2)
-          .then( _ => ( {app, isNew:true} ) );
+        return org.developerapps.create(options)
+          .then( app => ( {app, isNew:true} ) );
       }
       else {
         console.error('error: ' + util.format(e) );
         return Promise.reject(e);
       }
     });
+}
+
+function getValidCredLength() {
+  let credlength = opt.options.credlength || defaults.credlength;
+  return Math.min(Math.max(credlength, credlengths.MIN), credlengths.MAX);
+}
+
+function invalidCredLength(cred) {
+  return cred.length < credlengths.MIN || cred.length > credlengths.MAX;
+}
+
+function getValidCred(name) {
+  let cred = opt.options[name];
+  if ( ! cred ) {
+    cred = randomString(getValidCredLength());
+  }
+  if (invalidCredLength(cred)) {
+    common.logWrite(`INFO: invalid length for the explicitly-provided value for ${name}. Overriding it.`);
+    cred = randomString(getValidCredLength());
+  }
+  return cred;
 }
 
 // ========================================================
@@ -106,11 +112,11 @@ if ( !opt.options.product ) {
   process.exit(1);
 }
 
-if ( !opt.options.clientid ) {
-  console.log('You must specify a clientid');
-  getopt.showHelp();
-  process.exit(1);
-}
+// if ( opt.options.clientid ) {
+//   console.log('You must specify a clientid');
+//   getopt.showHelp();
+//   process.exit(1);
+// }
 
 if ( !opt.options.email ) {
   console.log('You must specify an email address');
@@ -119,6 +125,7 @@ if ( !opt.options.email ) {
 }
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
+
 apigeeEdge.connect(common.optToOptions(opt))
   .then ( org => {
     common.logWrite('connected');
@@ -130,21 +137,54 @@ apigeeEdge.connect(common.optToOptions(opt))
               apiProduct : opt.options.product.split(','),
               expiry : opt.options.expiry
             };
+        // There are 4 different cases, corresponding to the 2x2 matrix of
+        // possibilities:
+        // App already exists, or not.
+        // User is providing credentials, or not.
+        //
         return ensureAppExists(org, options)
           .then(({app, isNew}) => {
-            if (opt.options.clientid) {
-              options.clientId = opt.options.clientid;
-              options.clientSecret = opt.options.secret || randomString();
-              if (opt.options.expiry) {
-                common.logWrite('WARNING: expiry is not supported with an explicitly-supplied client id and secret');
+            let p = Promise.resolve({app});
+            if (opt.options.clientid || opt.options.secret) {
+              // an explicitly supplied clientid or secret, or both.
+              if (isNew) {
+                // The app has just been newly created. The user has explicitly
+                // supplied credentials. Therefore, delete the existing
+                // credential and add a new one.
+                let options2 = {
+                      consumerKey : app.credentials[0].consumerKey,
+                      appName : opt.options.appname,
+                      developerEmail : opt.options.email
+                    };
+                p = p.then( _ => org.appcredentials.del(options2) );
+              }
+              else {
+                // not a new app, so no need to delete newly-created credential
+              }
+              // add the specified new credential
+              p = p.then( _ => {
+                options.clientId = getValidCred("clientid");
+                options.clientSecret = getValidCred("secret");
+                if (opt.options.expiry) {
+                  common.logWrite('WARNING: it is not possible to set a credential expiry with an explicitly-supplied client id and secret');
+                }
+                return org.appcredentials.add(options);
+              });
+            }
+            else {
+              if ( ! isNew) {
+                // not a new app, we want to add a *apigee generated* credential
+                p = p.then(_ => org.appcredentials.add(options))
+                  .then( app => app.credentials[0]);
+              }
+              else {
+                // transform for the output
+                p = p.then( _ => app.credentials[0]);
               }
             }
-            if (opt.options.clientid || isNew) {
-              return addCred(org, options);
-            }
-            common.logWrite('app %s', util.format(app));
-            return app;
+            return p;
           })
+          .then( r => console.log('result: ' + util.format(r)));
       })
       .catch( e => {
         let s = String(e);
