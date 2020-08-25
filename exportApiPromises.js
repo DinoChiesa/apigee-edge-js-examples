@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-August-25 14:39:11>
+// last saved: <2020-August-25 15:34:45>
 
 const fs         = require('fs'),
       path       = require('path'),
@@ -28,7 +28,7 @@ const fs         = require('fs'),
       apigeeEdge = edgejs.edge,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20200825-1416',
+      version    = '20200825-1534',
       defaults   = { destination : 'exported' },
       getopt     = new Getopt(common.commonOptions.concat([
         ['N' , 'name=ARG', 'name of existing API proxy or shared flow'],
@@ -140,14 +140,9 @@ apigeeEdge.connect(common.optToOptions(opt))
     if (opt.options.pattern) {
       return exportLatestRevisionOfMatchingProxies(org, opt.options.pattern)
         .then (result => JSON.stringify(result, null, 2));
-        // .then (result => {
-        //   common.logWrite('ok');
-        //   return console.log(JSON.stringify(result, null, 2) + '\n');
-        // });
     }
 
     return Promise.resolve(common.logWrite("Unexpected input arguments: no name and no pattern."));
   })
   .then (result => console.log('\n' + result + '\n'))
-  //p.then (result => console.log('\n' + JSON.stringify(result, null, 2) + '\n'))
   .catch(e => common.logWrite(JSON.stringify(e, null, 2)));
