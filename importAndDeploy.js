@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-December-04 15:47:11>
+// last saved: <2020-October-15 15:51:43>
 
 const edgejs     = require('apigee-edge-js'),
       common     = edgejs.utility,
@@ -27,7 +27,7 @@ const edgejs     = require('apigee-edge-js'),
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
       version    = '20190827-1405',
-      defaults   = { basepath : '/' },
+      defaults   = { basepath : null },
       getopt     = new Getopt(common.commonOptions.concat([
         ['d' , 'source=ARG', 'source directory for the proxy files. Should be parent of dir "apiproxy" or "sharedflowbundle"'],
         ['N' , 'name=ARG', 'override the name for the API proxy or shared flow. By default it\'s extracted from the XML file.'],
