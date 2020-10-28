@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-July-08 16:07:48>
+// last saved: <2020-October-27 15:15:16>
 
 const edgejs     = require('apigee-edge-js'),
       common     = edgejs.utility,
@@ -37,7 +37,7 @@ var opt = getopt.parse(process.argv.slice(2));
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
 apigeeEdge.connect(common.optToOptions(opt))
-  .then( org => {
+  .then( org =>
     org.conn.getExistingToken()
       .then( existingToken => {
         if (opt.options.verbose) {
@@ -45,7 +45,7 @@ apigeeEdge.connect(common.optToOptions(opt))
           console.log(util.inspect(existingToken));
         }
       })
-      .then( x => {
+      .then( x =>
         org.conn.refreshToken()
           .then (token => {
             if (opt.options.verbose) {
@@ -63,7 +63,6 @@ apigeeEdge.connect(common.optToOptions(opt))
               console.log( 'expires: ' + (new Date(claims.exp * 1000)).toISOString());
               console.log( 'client_id: ' + claims.client_id);
             }
-          });
-      });
-  })
+            return null;
+          })))
   .catch( e => { console.error('error: ' + e);} );
