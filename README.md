@@ -335,3 +335,47 @@ This will show all the apps in an organization, grouped by the credential status
 node ./showAppsByCredentialStatus.js -o $ORG  -n --timespan 60d
 
 ```
+
+# Delete expired credentials
+
+```
+$ node ./deleteExpiredCredentials.js -n -o $ORG --timespan 100w
+Apigee Edge deleteExpiredCredentials.js tool, version: 20201103-1759
+Node.js v12.14.1
+
+[2020-Nov-04 08:21:47] will not make any changes...
+[2020-Nov-04 08:21:51] found 50 apps for that org
+[2020-Nov-04 08:21:51] found 18 apps with expired credentials
+[2020-Nov-04 08:21:51] found 21 expired credentials
+[2020-Nov-04 08:21:51] found 1 credentials expired prior to 100w ago
+[2020-Nov-04 08:21:51] not making any changes... (see the --doit option)
+
+
+$ node ./deleteExpiredCredentials.js -n -o $ORG --timespan 100w --doit
+Apigee Edge deleteExpiredCredentials.js tool, version: 20201103-1759
+Node.js v12.14.1
+
+[2020-Nov-04 08:22:01] found 50 apps for that org
+[2020-Nov-04 08:22:01] found 18 apps with expired credentials
+[2020-Nov-04 08:22:01] found 21 expired credentials
+[2020-Nov-04 08:22:01] found 1 credentials expired prior to 100w ago
+[2020-Nov-04 08:22:01] removing them...
+[
+  {
+    "apiProducts": [
+      {
+        "apiproduct": "TestingProduct",
+        "status": "approved"
+      }
+    ],
+    "attributes": [],
+    "consumerKey": "Gt2DNSJrGbscnknlP5o9ii0ObY2nsASO",
+    "consumerSecret": "YKydBxOdAjU70JsC",
+    "expiresAt": 1542213573783,
+    "issuedAt": 1539621573783,
+    "scopes": [],
+    "status": "expired"
+  }
+]
+
+```
