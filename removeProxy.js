@@ -16,7 +16,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2020-November-03 14:38:27>
+// last saved: <2020-November-04 08:18:47>
 /* global process */
 
 const edgejs     = require('apigee-edge-js'),
@@ -47,6 +47,9 @@ if ( !opt.options.proxy ) {
   console.log('You must specify a proxy to remove');
   getopt.showHelp();
   process.exit(1);
+}
+if ( ! opt.options.doit) {
+  common.logWrite('will not make any changes...');
 }
 
 apigeeEdge.connect(common.optToOptions(opt))
@@ -127,9 +130,10 @@ apigeeEdge.connect(common.optToOptions(opt))
                })
                .then(results => console.log(JSON.stringify({undeployments:results}, null, 2))))
         .then( _ => {
-               if (opt.options.doit) {
-                 return org.proxies.del({name:opt.options.proxy});
-               }
+          if (opt.options.doit) {
+            return org.proxies.del({name:opt.options.proxy});
+          }
+          common.logWrite('not making any changes... (see the --doit option)');
           return opt.options.proxy;
         }))
 
