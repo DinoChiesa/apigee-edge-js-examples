@@ -16,7 +16,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2020-November-03 17:36:22>
+// last saved: <2020-November-03 17:54:07>
 /* global process */
 
 const edgejs     = require('apigee-edge-js'),
@@ -89,27 +89,26 @@ apigee.connect(common.optToOptions(opt))
     org.apps.get({expand:true})
       .then(result => {
         let apps = result.app
-          .map(app => ({name:app.name, creds:app.credentials.map( ({consumerKey, expiresAt}) => ({consumerKey, expiresAt}))}));
+          .map(app => ({name:app.name, creds:app.credentials.map( ({consumerKey, expiresAt}) => ({consumerKey, expiresAt, expires:((expiresAt == -1)?'never':((new Date(expiresAt)).toISOString()))}))}));
 
-        if (opt.options.verbose) {
-          common.logWrite('found %d apps for that org', apps.length);
-        }
+        common.logWrite('found %d apps for that org', apps.length);
 
-        const [appsNoExpiry, appsWithExpiry] = partition(apps, app => app.creds.find(cred => cred.expiresAt == -1));
+        let [appsWithExpiry, appsNoExpiry] = partition(apps, app => app.creds.some(cred => cred.expiresAt != -1));
         common.logWrite('apps with no expiry (%d): %s', appsNoExpiry.length, JSON.stringify(appsNoExpiry, null, 2));
 
         let now = (new Date()).getTime();
         const [appsAlreadyExpired, appsWillExpire] =
-          partition(appsWithExpiry, app => app.creds.find(cred => cred.expiresAt < now));
+          partition(appsWithExpiry, app => app.creds.some(cred => cred.expiresAt < now));
 
         common.logWrite('apps with expired credentials (%d): %s', appsAlreadyExpired.length, JSON.stringify(appsAlreadyExpired, null, 2));
 
-        let appsExpiringSoon =
-          appsWillExpire
-          .filter(app => app.creds.find(cred => cred.expiresAt < expiry))
-          .map(({name, creds}) => ({name, creds:creds.map(cred => ({...cred, expires:(new Date(cred.expiresAt)).toISOString()}))}));
+        const [expiringSoon, expiringLater] =
+          partition(appsWillExpire,
+                    app => app.creds.find(cred => cred.expiresAt < expiry));
 
         common.logWrite('apps expiring within %s (%d): %s',
-                        appliedTimespan, appsExpiringSoon.length, JSON.stringify(appsExpiringSoon, null, 2));
+                        appliedTimespan, expiringSoon.length, JSON.stringify(expiringSoon, null, 2));
+        common.logWrite('apps expiring after %s (%d): %s',
+                        appliedTimespan, expiringLater.length, JSON.stringify(expiringLater, null, 2));
       }))
   .catch( e => console.error('error: ' + util.format(e) ) );

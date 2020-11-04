@@ -326,3 +326,12 @@ OK
 {"name":"apigee-edgejs-test-lowerCaseElements.xsl","type":"xsl"}
 
 ```
+
+# Show Apps by Credential Status
+
+This will show all the apps in an organization, grouped by the credential status: no expiry, already expired, expiring soon, and expiring later.  You can specify the timeframe for "soon".
+
+```
+node ./showAppsByCredentialStatus.js -o $ORG  -n --timespan 60d
+
+```
