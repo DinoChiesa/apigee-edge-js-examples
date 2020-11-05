@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-August-25 15:34:45>
+// last saved: <2020-November-05 08:55:25>
 
 const fs         = require('fs'),
       path       = require('path'),
@@ -28,55 +28,52 @@ const fs         = require('fs'),
       apigeeEdge = edgejs.edge,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20200825-1534',
+      version    = '20201105-0836',
       defaults   = { destination : 'exported' },
       getopt     = new Getopt(common.commonOptions.concat([
         ['N' , 'name=ARG', 'name of existing API proxy or shared flow'],
         ['P' , 'pattern=ARG', 'regex pattern for name of existing API proxy or shared flow; this always exports the latest revision.'],
         ['D' , 'destination=ARG', 'directory for export. Default: exported'],
         ['t' , 'trial', 'trial only. Do not actually export'],
+        ['S' , 'sharedflow', 'search and export sharedflows, not proxies. Default: export proxies.'],
         ['R' , 'revision=ARG', 'revision of the asset to export. Default: latest']
       ])).bindHelp();
 
-function exportOneProxyRevision(org, name, revision) {
+let collection = 'proxies';
+function exportOneRevision(org, name, revision) {
+  let artifactType = (opt.options.sharedflow)?'sharedflow':'apiproxy';
   return new Promise( (resolve, reject) => {
     if (opt.options.trial) {
-      common.logWrite('WOULD EXPORT HERE %s, revision:%s', name, revision);
-      return resolve(path.join(opt.options.destination, sprintf("%s-%s-TIMESTAMP.zip", name, revision)));
+      common.logWrite('WOULD EXPORT %s HERE; %s, revision:%s',
+                      artifactType, name, revision);
+      return resolve(path.join(opt.options.destination,
+                               sprintf("%s-%s-%s-TIMESTAMP.zip", artifactType, name, revision)));
     }
-    return org.proxies.export({name:name, revision:revision})
+    return org[collection].export({name:name, revision:revision})
       .then(result => {
         let fullFilename = path.join(opt.options.destination, result.filename);
         fs.writeFileSync(fullFilename, result.buffer);
-        //common.logWrite('export ok file: %s', result.filename);
         return resolve(fullFilename);
       });
   });
 }
 
-function exportLatestRevisionOfProxy(org, name) {
-  return org.proxies.getRevisions({name:name})
-    .then(revisions =>
-          exportOneProxyRevision(org, name, revisions[revisions.length - 1]) );
+function exportLatestRevision(org, name) {
+  return org[collection].getRevisions({name:name})
+    .then(revisions => exportOneRevision(org, name, revisions[revisions.length - 1]) );
 }
 
-function proxyExporter(org) {
-  return function(item, cb) {
-    return exportLatestRevisionOfProxy(org, item, cb);
-  };
-}
-
-function exportLatestRevisionOfMatchingProxies(org, pattern, cb) {
-  let re1 = new RegExp(pattern);
-  return org.proxies.get({})
+function exportLatestRevisionOfMatch(org, pattern, cb) {
+  let re1 = (pattern) ? new RegExp(pattern) : null;
+  return org[collection].get({})
     .then( result => {
-      const reducer = (promise, proxy) =>
-        promise .then( accumulator =>
-                       exportLatestRevisionOfProxy(org, proxy)
-                       .then( filename => [ ...accumulator, {proxy, filename} ] ));
+      const reducer = (p, artifactName) =>
+        p.then( a =>
+                exportLatestRevision(org, artifactName)
+                .then( filename => [ ...a, {artifactName, filename} ] ));
 
       return result
-        .filter( a => a.match(re1) )
+        .filter( a => (re1)?a.match(re1):true)
         .reduce(reducer, Promise.resolve([]));
     });
 }
@@ -85,7 +82,7 @@ function exportLatestRevisionOfMatchingProxies(org, pattern, cb) {
 // ========================================================
 
 console.log(
-  'Apigee Edge Proxy Export tool, version: ' + version + '\n' +
+  'Apigee Edge Proxy/Sharedflow Export tool, version: ' + version + '\n' +
     'Node.js ' + process.version + '\n');
 
 process.on('unhandledRejection',
@@ -95,12 +92,6 @@ common.logWrite('start');
 
 // process.argv array starts with 'node' and 'scriptname.js'
 var opt = getopt.parse(process.argv.slice(2));
-
-if ( !opt.options.name && !opt.options.pattern ) {
-  console.log('You must specify a name, or a pattern for the name, for the proxy or sharedflow to be exported');
-  getopt.showHelp();
-  process.exit(1);
-}
 
 if ( opt.options.name && opt.options.pattern ) {
   console.log('You must specify only one of a name, or a pattern for the name, for the proxy or sharedflow to be exported');
@@ -122,6 +113,8 @@ if ( ! opt.options.trial) {
   mkdirp.sync(opt.options.destination);
 }
 
+collection = (opt.options.sharedflow) ? 'sharedflows' : 'proxies';
+
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
 apigeeEdge.connect(common.optToOptions(opt))
@@ -130,19 +123,22 @@ apigeeEdge.connect(common.optToOptions(opt))
 
     if (opt.options.name && opt.options.revision) {
       common.logWrite('exporting');
-      return exportOneProxyRevision(org, opt.options.name, opt.options.revision);
+      return exportOneRevision(org, opt.options.name, opt.options.revision);
     }
 
     if (opt.options.name) {
-      return exportLatestRevisionOfProxy(org, opt.options.name);
+      return exportLatestRevision(org, opt.options.name);
     }
 
-    if (opt.options.pattern) {
-      return exportLatestRevisionOfMatchingProxies(org, opt.options.pattern)
-        .then (result => JSON.stringify(result, null, 2));
-    }
-
-    return Promise.resolve(common.logWrite("Unexpected input arguments: no name and no pattern."));
+    // without pattern, this will export all latest revisions
+    return exportLatestRevisionOfMatch(org, opt.options.pattern)
+      .then(result => {
+        common.logWrite('%s %d %s',
+                        (opt.options.trial)?'would export':'exported',
+                        result.length,
+                        collection);
+        return JSON.stringify(result, null, 2);
+      });
   })
-  .then (result => console.log('\n' + result + '\n'))
+  .then(result => console.log('\n' + result + '\n'))
   .catch(e => common.logWrite(JSON.stringify(e, null, 2)));
