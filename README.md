@@ -10,6 +10,26 @@ Also, they use the OAuth authentication mechanism for Apigee Edge.
 These tools are not an official Google product, nor are they part of an official Google product, nor are they included under any Google support contract.
 Support is available on a best-effort basis via github or [community.apigee.com](https://community.apigee.com) .
 
+# Getting Started
+
+To get started, you must have a recent version of node and npm installed. And you must have a command-line git tool. Then,
+
+1. clone this repo into a new directory.
+   ```
+   git clone git@github.com:DinoChiesa/apigee-edge-js-examples.git
+   ```
+2. install the required node modules
+   ```
+   cd apigee-edge-js-examples
+   npm install
+   ```
+
+3. run the tool you wish to try out:
+   ```
+   node findJavaPolicies.js ...
+   ```
+
+
 
 # Common options
 
