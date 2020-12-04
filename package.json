@@ -1,6 +1,6 @@
 {
   "name": "apigee-edge-js-examples",
-  "version": "0.4.18",
+  "version": "0.4.19",
   "description": "Examples for using the Apigee Edge nodeJS library",
   "main": "importAndDeploy.js",
   "scripts": {
@@ -13,7 +13,7 @@
   "author": "dchiesa@google.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "apigee-edge-js": ">=0.4.17",
+    "apigee-edge-js": ">=0.4.20",
     "async": "2.6.0",
     "merge": "1.2.1",
     "mkdirp": "1.0.3",

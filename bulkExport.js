@@ -1,6 +1,6 @@
 #! /usr/local/bin/node
 /*jslint node:true */
-// exportApiPromises.js
+// bulkExport.js
 // ------------------------------------------------------------------
 // export one or more Apigee Edge proxy bundles
 //
@@ -18,28 +18,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-November-05 08:55:25>
+// last saved: <2020-December-03 19:13:32>
 
 const fs         = require('fs'),
       path       = require('path'),
+      util       = require('util'),
       mkdirp     = require('mkdirp'),
       edgejs     = require('apigee-edge-js'),
       common     = edgejs.utility,
       apigeeEdge = edgejs.edge,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20201105-0836',
-      defaults   = { destination : 'exported' },
+      version    = '20201203-1913',
+      defaults   = { destination : 'exported-' + timeString() },
       getopt     = new Getopt(common.commonOptions.concat([
         ['N' , 'name=ARG', 'name of existing API proxy or shared flow'],
         ['P' , 'pattern=ARG', 'regex pattern for name of existing API proxy or shared flow; this always exports the latest revision.'],
         ['D' , 'destination=ARG', 'directory for export. Default: exported'],
         ['t' , 'trial', 'trial only. Do not actually export'],
         ['S' , 'sharedflow', 'search and export sharedflows, not proxies. Default: export proxies.'],
-        ['R' , 'revision=ARG', 'revision of the asset to export. Default: latest']
+        ['R' , 'revision=ARG', 'revision of the asset to export. Default: latest'],
+        ['e' , 'env=ARG', 'environment. Exports only APIs that are deployed to this environment. Default: all apis']
       ])).bindHelp();
 
 let collection = 'proxies';
+function timeString() {
+  return (new Date())
+    .toISOString()
+    .replace(/[-:]/g,'')
+    .replace(/T/,'-')
+    .replace(/\.\d\d\dZ$/,'');
+}
+
 function exportOneRevision(org, name, revision) {
   let artifactType = (opt.options.sharedflow)?'sharedflow':'apiproxy';
   return new Promise( (resolve, reject) => {
@@ -58,26 +68,46 @@ function exportOneRevision(org, name, revision) {
   });
 }
 
-function exportLatestRevision(org, name) {
-  return org[collection].getRevisions({name:name})
-    .then(revisions => exportOneRevision(org, name, revisions[revisions.length - 1]) );
-}
+const findLatestRevision = (org, name) =>
+ org[collection].getRevisions({name:name})
+    .then(revisions => revisions[revisions.length - 1] );
 
-function exportLatestRevisionOfMatch(org, pattern, cb) {
+
+const findDeployedRevision = (org, name, env) =>
+ org[collection].getDeployments({name, env})
+  .then( deployment => {
+      let revisions = deployment.revision.filter( r => r.state == 'deployed');
+      // Today there is just one deployed revision. In the future there may be
+      // more than one. Just choose the first one.
+      return revisions && revisions.length && revisions[0].name;
+  })
+  .catch(e => null);
+
+
+
+function exportMatchingArtifacts(org, {pattern, env}) {
   let re1 = (pattern) ? new RegExp(pattern) : null;
-  return org[collection].get({})
-    .then( result => {
-      const reducer = (p, artifactName) =>
-        p.then( a =>
-                exportLatestRevision(org, artifactName)
-                .then( filename => [ ...a, {artifactName, filename} ] ));
 
-      return result
-        .filter( a => (re1)?a.match(re1):true)
+  return org[collection].get({})
+    .then( proxies => {
+      if (re1) {
+        proxies = proxies.filter( a => a.match(re1) );
+      }
+      let finder = (env) ? findDeployedRevision : findLatestRevision;
+
+      // if environment is specified, then export the deployed revision
+      let reducer = (p, artifactName) =>
+          p.then( a =>
+                  finder(org, artifactName, env)
+                  .then(rev =>
+                    (rev) ?
+                        exportOneRevision(org, artifactName, rev)
+                        .then( filename => [ ...a, {artifactName, filename} ] )
+                        : a));
+      return proxies
         .reduce(reducer, Promise.resolve([]));
     });
 }
-
 
 // ========================================================
 
@@ -130,8 +160,7 @@ apigeeEdge.connect(common.optToOptions(opt))
       return exportLatestRevision(org, opt.options.name);
     }
 
-    // without pattern, this will export all latest revisions
-    return exportLatestRevisionOfMatch(org, opt.options.pattern)
+    return exportMatchingArtifacts(org, {pattern:opt.options.pattern, env:opt.options.env})
       .then(result => {
         common.logWrite('%s %d %s',
                         (opt.options.trial)?'would export':'exported',
@@ -141,4 +170,4 @@ apigeeEdge.connect(common.optToOptions(opt))
       });
   })
   .then(result => console.log('\n' + result + '\n'))
-  .catch(e => common.logWrite(JSON.stringify(e, null, 2)));
+  .catch(e => common.logWrite('exception while exporting: ' + util.format(e)));

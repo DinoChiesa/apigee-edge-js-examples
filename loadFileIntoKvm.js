@@ -1,10 +1,10 @@
 #! /usr/local/bin/node
 /*jslint node:true */
-// loadPemIntoKvm.js
+// loadFileIntoKvm.js
 // ------------------------------------------------------------------
-// load a PEM into Apigee Edge KVM
+// load the contents of a text file into Apigee KVM
 //
-// Copyright 2017-2019 Google LLC.
+// Copyright 2017-2020 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-September-25 15:52:25>
+// last saved: <2020-November-06 09:42:08>
 
 const fs         = require('fs'),
       edgejs     = require('apigee-edge-js'),
@@ -27,26 +27,26 @@ const fs         = require('fs'),
       sprintf    = require('sprintf-js').sprintf,
       util       = require('util'),
       Getopt     = require('node-getopt'),
-      version    = '20190925-1538',
-      defaults   = { mapname : 'PrivateKeys' },
+      version    = '20201106-0940',
+      defaults   = { mapname : 'settings' },
       getopt     = new Getopt(common.commonOptions.concat([
       ['e' , 'env=ARG', 'required. the Edge environment for which to store the KVM data'],
-      ['m' , 'mapname=ARG', 'optional. name of the KVM in Edge for keys. Will be created if nec. Default: ' + defaults.mapname],
+      ['m' , 'mapname=ARG', 'optional. name of the KVM in Apigee. Will be created if nec. Default: ' + defaults.mapname],
       ['E' , 'encrypted', 'optional. use an encrypted KVM. Applies only if creating a new KVM. Default: not.'],
-      ['F' , 'pemfile=ARG', 'required. name of the file containing the pem-encoded key.'],
-      ['N' , 'entryname=ARG', 'required. name of the entry in KVM to store the PEM.']
+      ['F' , 'file=ARG', 'required. the filesystem file to read, to get the content.'],
+      ['N' , 'entryname=ARG', 'required. name of the entry in KVM to store the content.']
     ])).bindHelp();
 
 // ========================================================
 
-function loadKeyIntoMap(org) {
-  var re = new RegExp('(?:\r\n|\r|\n)', 'g');
-  var pemcontent = fs.readFileSync(opt.options.pemfile, "utf8").replace(re,'\n');
-  var options = {
+function loadFileIntoMap(org) {
+  let re = new RegExp('(?:\r\n|\r|\n)', 'g'),
+      content = fs.readFileSync(opt.options.file, "utf8").replace(re,'\n'),
+      options = {
         env: opt.options.env,
         kvm: opt.options.mapname,
         key: opt.options.entryname,
-        value: pemcontent
+        value: content
       };
   common.logWrite('storing new key \'%s\'', opt.options.entryname);
   return org.kvms.put(options)
@@ -56,15 +56,13 @@ function loadKeyIntoMap(org) {
 // ========================================================
 
 console.log(
-  'Apigee Edge PEM KVM-loader tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee KVM-loader tool, version: ${version}\nNode.js ${process.version}\n`);
 
 process.on('unhandledRejection',
             r => console.log('\n*** unhandled promise rejection: ' + util.format(r)));
 
 common.logWrite('start');
 
-// process.argv array starts with 'node' and 'scriptname.js'
 var opt = getopt.parse(process.argv.slice(2));
 
 if ( !opt.options.env ) {
@@ -94,11 +92,11 @@ apigeeEdge.connect(common.optToOptions(opt))
           // the map does not yet exist
           common.logWrite('Need to create the map');
           return org.kvms.create({ env: opt.options.env, name: opt.options.mapname, encrypted:opt.options.encrypted})
-            .then( _ => loadKeyIntoMap(org) );
+            .then( _ => loadFileIntoMap(org) );
         }
 
         common.logWrite('ok. the required map exists');
-        return loadKeyIntoMap(org);
+        return loadFileIntoMap(org);
       });
   })
   .catch( e => console.log('Error: ' + util.format(e)));
