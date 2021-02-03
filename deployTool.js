@@ -6,7 +6,7 @@
 // example:
 //  node ./deployTool.js -v -n -o therealdinochiesa2-eval -e prod,test -N raisefaulttest,externalaccesstoken-1
 //
-// Copyright 2017-2019 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,14 +20,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-September-05 15:22:42>
+// last saved: <2021-February-03 14:25:31>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
+const apigeejs   = require('apigee-edge-js'),
+      common     = apigeejs.utility,
+      apigee     = apigeejs.edge,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20190211-1248',
+      version    = '20210203-1424',
       defaults   = { basepath : '/' },
       getopt     = new Getopt(common.commonOptions.concat([
         ['N' , 'name=ARG', 'name of the proxy or sharedflow to deploy. The asset must exist. Separate multiple environments with a comma.'],
@@ -60,7 +60,7 @@ if ( ! opt.options.env ) {
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
-apigeeEdge.connect(common.optToOptions(opt))
+apigee.connect(common.optToOptions(opt))
   .then( (org) => {
     common.logWrite('connected');
 
@@ -76,7 +76,7 @@ apigeeEdge.connect(common.optToOptions(opt))
       // undeploy whatever is deployed
       const combinations = cartesianProduct(names, envs);
       const reducer = (promise, combo) =>
-            promise .then( () => collection.undeploy(Object.assign(options, { name:combo[0], environment:combo[1] }))
+                       promise .then( () => collection.undeploy({ name:combo[0], environment:combo[1] })
                            .then( (result) => common.logWrite('action ' + ((result.error) ? 'failed: ' + JSON.stringify(result) : 'succeeded.') )) );
       combinations
         .reduce(reducer, Promise.resolve())
@@ -96,7 +96,7 @@ apigeeEdge.connect(common.optToOptions(opt))
           const combinations = cartesianProduct(nameRevisionPairs, envs);
           // deploy the latest revision of each proxy to each environment in series
           const reducer = (promise, combo) =>
-            promise .then( () => collection.deploy(Object.assign(options, { name:combo[0], revision:combo[1], environment:combo[2] }))
+            promise .then( () => collection.deploy({ name:combo[0], revision:combo[1], environment:combo[2] })
                            .then( (result) => common.logWrite('action ' + ((result.error) ? 'failed: ' + JSON.stringify(result) : 'succeeded.') )) );
           combinations
             .reduce(reducer, Promise.resolve())
