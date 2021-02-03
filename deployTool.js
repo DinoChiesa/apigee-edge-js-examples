@@ -20,14 +20,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-February-03 14:25:31>
+// last saved: <2021-February-03 14:42:24>
 
 const apigeejs   = require('apigee-edge-js'),
       common     = apigeejs.utility,
       apigee     = apigeejs.edge,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20210203-1424',
+      version    = '20210203-1442',
       defaults   = { basepath : '/' },
       getopt     = new Getopt(common.commonOptions.concat([
         ['N' , 'name=ARG', 'name of the proxy or sharedflow to deploy. The asset must exist. Separate multiple environments with a comma.'],
@@ -75,8 +75,8 @@ apigee.connect(common.optToOptions(opt))
     if (opt.options.undeploy) {
       // undeploy whatever is deployed
       const combinations = cartesianProduct(names, envs);
-      const reducer = (promise, combo) =>
-                       promise .then( () => collection.undeploy({ name:combo[0], environment:combo[1] })
+      const reducer = (promise, pair) =>
+                       promise .then( () => collection.undeploy({ name:pair[0], environment:pair[1] })
                            .then( (result) => common.logWrite('action ' + ((result.error) ? 'failed: ' + JSON.stringify(result) : 'succeeded.') )) );
       combinations
         .reduce(reducer, Promise.resolve())
