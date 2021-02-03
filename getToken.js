@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-May-11 16:03:49>
+// last saved: <2020-December-16 09:48:54>
 
 const edgejs     = require('apigee-edge-js'),
       common     = edgejs.utility,
@@ -49,14 +49,19 @@ apigeeEdge.connect(common.optToOptions(opt))
         if (opt.options.verbose) {
           let jwt = existingToken.access_token,
               jwtparts = jwt.split(new RegExp('\\.')),
-              payload = Buffer.from(jwtparts[1], 'base64').toString('utf-8'),
-              claims = JSON.parse(payload);
+              payload = Buffer.from(jwtparts[1], 'base64').toString('utf-8');
+          try {
+              let claims = JSON.parse(payload);
           console.log( '\nissuer   : ' + claims.iss);
           console.log( 'user     : ' + claims.user_name);
           console.log( 'issued at: ' + (new Date(claims.iat * 1000)).toISOString());
           console.log( 'expires  : ' + (new Date(claims.exp * 1000)).toISOString());
           console.log( 'now      : ' + (new Date()).toISOString());
-          console.log( 'client_id: ' + claims.client_id);
+            console.log( 'client_id: ' + claims.client_id);
+          }
+          catch (e) {
+            // gulp
+          }
         }
       }))
   .catch( e => console.error('error: ' + e) );
