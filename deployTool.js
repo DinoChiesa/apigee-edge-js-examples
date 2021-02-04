@@ -20,18 +20,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-February-03 14:42:24>
+// last saved: <2021-February-03 18:14:28>
 
 const apigeejs   = require('apigee-edge-js'),
       common     = apigeejs.utility,
       apigee     = apigeejs.edge,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20210203-1442',
+      version    = '20210203-1814',
       defaults   = { basepath : '/' },
       getopt     = new Getopt(common.commonOptions.concat([
         ['N' , 'name=ARG', 'name of the proxy or sharedflow to deploy. The asset must exist. Separate multiple environments with a comma.'],
-        ['e' , 'env=ARG', 'the Edge environment(s) to which to deploy the asset. Separate multiple environments with a comma.'],
+        ['e' , 'env=ARG', 'the Apigee environment(s) to which to deploy the asset. Separate multiple environments with a comma.'],
         ['U' , 'undeploy', 'undeploy. Default is to deploy.'],
         ['S' , 'sharedflow', 'deploy a sharedflow. Default: deploy a proxy.']
       ])).bindHelp();
