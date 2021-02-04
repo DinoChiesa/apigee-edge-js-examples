@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------
 // import and deploy an Apigee Edge proxy bundle or shared flow.
 //
-// Copyright 2017-2020 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,15 +18,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-November-06 09:59:06>
+// last saved: <2021-February-03 18:40:53>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
+const apigeejs   = require('apigee-edge-js'),
+      common     = apigeejs.utility,
       util       = require('util'),
-      apigeeEdge = edgejs.edge,
+      apigee     = apigeejs.edge,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20190827-1405',
+      version    = '20210203-1840',
       defaults   = { basepath : null },
       getopt     = new Getopt(common.commonOptions.concat([
         ['d' , 'source=ARG', 'source directory for the proxy files. Should be parent of dir "apiproxy" or "sharedflowbundle"'],
@@ -48,7 +48,7 @@ process.on('unhandledRejection',
 common.logWrite('start');
 
 // process.argv array starts with 'node' and 'scriptname.js'
-var opt = getopt.parse(process.argv.slice(2));
+let opt = getopt.parse(process.argv.slice(2));
 
 if ( !opt.options.source ) {
   console.log('You must specify a source directory');
@@ -64,7 +64,7 @@ if (opt.options.basepath && opt.options.sharedflow) {
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
-apigeeEdge
+apigee
   .connect(common.optToOptions(opt))
   .then( org => {
     common.logWrite('connected');
