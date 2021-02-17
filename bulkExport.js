@@ -18,18 +18,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-December-03 19:13:32>
+// last saved: <2021-February-17 13:20:50>
 
 const fs         = require('fs'),
       path       = require('path'),
       util       = require('util'),
       mkdirp     = require('mkdirp'),
-      edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
+      apigeejs   = require('apigee-edge-js'),
+      common     = apigeejs.utility,
+      apigee     = apigeejs.edge,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20201203-1913',
+      version    = '20210217-1320',
       defaults   = { destination : 'exported-' + timeString() },
       getopt     = new Getopt(common.commonOptions.concat([
         ['N' , 'name=ARG', 'name of existing API proxy or shared flow'],
@@ -72,7 +72,6 @@ const findLatestRevision = (org, name) =>
  org[collection].getRevisions({name:name})
     .then(revisions => revisions[revisions.length - 1] );
 
-
 const findDeployedRevision = (org, name, env) =>
  org[collection].getDeployments({name, env})
   .then( deployment => {
@@ -82,8 +81,6 @@ const findDeployedRevision = (org, name, env) =>
       return revisions && revisions.length && revisions[0].name;
   })
   .catch(e => null);
-
-
 
 function exportMatchingArtifacts(org, {pattern, env}) {
   let re1 = (pattern) ? new RegExp(pattern) : null;
@@ -110,18 +107,18 @@ function exportMatchingArtifacts(org, {pattern, env}) {
 }
 
 // ========================================================
-
-console.log(
-  'Apigee Edge Proxy/Sharedflow Export tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
-
 process.on('unhandledRejection',
             r => console.log('\n*** unhandled promise rejection: ' + util.format(r)));
 
-common.logWrite('start');
-
 // process.argv array starts with 'node' and 'scriptname.js'
-var opt = getopt.parse(process.argv.slice(2));
+let opt = getopt.parse(process.argv.slice(2));
+if (opt.options.verbose) {
+  console.log(
+    `Apigee Proxy/Sharedflow Export tool, version: ${version}\n` +
+      `Node.js ${process.version}\n`);
+
+  common.logWrite('start');
+}
 
 if ( opt.options.name && opt.options.pattern ) {
   console.log('You must specify only one of a name, or a pattern for the name, for the proxy or sharedflow to be exported');
@@ -147,7 +144,7 @@ collection = (opt.options.sharedflow) ? 'sharedflows' : 'proxies';
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
-apigeeEdge.connect(common.optToOptions(opt))
+apigee.connect(common.optToOptions(opt))
   .then(org => {
     common.logWrite('connected');
 
