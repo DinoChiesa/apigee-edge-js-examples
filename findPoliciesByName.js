@@ -2,10 +2,10 @@
 /*jslint node:true, esversion:9 */
 // findPoliciesByName.js
 // ------------------------------------------------------------------
-// In Apigee Edge, find policies in all proxies and/or sharedflows that have a
+// In Apigee, find policies in all proxies and/or sharedflows that have a
 // matching name.
 //
-// Copyright 2017-2019 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,15 +19,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-December-05 23:04:55>
+// last saved: <2021-March-16 09:54:04>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
+const apigeejs   = require('apigee-edge-js'),
+      common     = apigeejs.utility,
+      apigee     = apigeejs.edge,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
       util       = require('util'),
-      version    = '20191205-2158',
+      version    = '20210316-0952',
       getopt     = new Getopt(common.commonOptions.concat([
         ['P' , 'proxiesonly', 'Optional. Look for policies only within proxies.'],
         ['S' , 'sharedflowsonly', 'Optional. Look for policies only within sharedflows.'],
@@ -36,7 +36,7 @@ const edgejs     = require('apigee-edge-js'),
         ['L' , 'latestrevisionnumber', 'Optional. only look in the latest revision number for each proxy.']
       ])).bindHelp();
 
-var regexp1;
+let regexp1;
 function getRegexp() {
   if ( ! regexp1) {
     regexp1 = new RegExp(opt.options.policypattern);
@@ -107,8 +107,8 @@ function listChecker(collection, collectionName, typeName) {
 // ========================================================
 
 console.log(
-  'Apigee Edge Policy finder tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee Edge Policy finder tool, version: ${version}\n` +
+    `Node.js ${process.version}\n`);
 
 common.logWrite('start');
 
@@ -128,7 +128,8 @@ if (opt.options.proxiesonly && opt.options.sharedflowsonly) {
   process.exit(1);
 }
 
-apigeeEdge.connect(common.optToOptions(opt))
+apigee
+  .connect(common.optToOptions(opt))
   .then( org => {
     let p = Promise.resolve([]);
 
