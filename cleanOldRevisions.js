@@ -19,17 +19,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-June-04 08:30:30>
+// last saved: <2021-March-23 11:13:49>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
-      sprintf    = require('sprintf-js').sprintf,
-      Getopt     = require('node-getopt'),
-      merge      = require('merge'),
-      util       = require('util'),
-      version    = '20200604-0830',
-      getopt     = new Getopt(common.commonOptions.concat([
+const apigeejs = require('apigee-edge-js'),
+      common   = apigeejs.utility,
+      apigee   = apigeejs.apigee,
+      sprintf  = require('sprintf-js').sprintf,
+      Getopt   = require('node-getopt'),
+      merge    = require('merge'),
+      util     = require('util'),
+      version  = '20210323-1109',
+      getopt   = new Getopt(common.commonOptions.concat([
         ['R' , 'regexp=ARG', 'Optional. Cull only proxies with names matching this regexp.'],
         ['K' , 'numToKeep=ARG', 'Required. Max number of revisions of each proxy to retain.'],
         ['S' , 'sharedflows', 'Optional. Cull only sharedflows, not apiproxies.']
@@ -38,8 +38,8 @@ const edgejs     = require('apigee-edge-js'),
 // ========================================================
 
 console.log(
-  'Apigee Edge Proxy / Sharedflow revision cleaner tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee Proxy / Sharedflow revision cleaner tool, version: ${version}\n` +
+    `Node.js ${process.version}\n`);
 
 process.on('unhandledRejection',
             r => console.log('\n*** unhandled promise rejection: ' + util.format(r)));
@@ -49,34 +49,33 @@ common.logWrite('start');
 // process.argv array starts with 'node' and 'scriptname.js'
 var opt = getopt.parse(process.argv.slice(2));
 
-function examineRevisions(collection, itemName, revisions) {
-    common.logWrite('revisions %s: %s', itemName, JSON.stringify(revisions));
+function examineRevisions(collection, name, revisions) {
+    common.logWrite('revisions %s: %s', name, JSON.stringify(revisions));
     if (revisions && revisions.length > opt.options.numToKeep) {
       revisions.sort( (a, b) => b - a );
       revisions.reverse();
       let revisionsToExamine = revisions.slice(0, revisions.length - opt.options.numToKeep);
       revisionsToExamine.reverse();
 
-      const reducer = (promise, revision) =>
-        promise.then( accumulator => {
-          const options = { name: itemName, revision };
+      const reducer = (p, revision) =>
+        p.then( a => {
+          const options = { name, revision };
           return collection.getDeployments(options)
             .then( deployments => {
               if (opt.options.verbose) {
-                common.logWrite('deployments (%s r%s): %s', itemName, revision, JSON.stringify(deployments));
+                common.logWrite('deployments (%s r%s): %s', name, revision, JSON.stringify(deployments));
               }
-              if (! deployments.environment || deployments.environment.length === 0) {
-                return collection.del(options)
-                  .then ( _ => [ ...accumulator, revision ] );
-              }
-              return Promise.resolve(accumulator);
+              return (! deployments.environment || deployments.environment.length === 0) ?
+                collection.del(options).then ( _ => [ ...a, revision ] ) : a;
             });
         });
 
       return revisionsToExamine.reduce(reducer, Promise.resolve([]))
-        .then ( r => {
-          common.logWrite("deleted %s: %s", itemName, JSON.stringify(r));
-          return {"item": itemName, revisions: r};
+        .then ( revisions => {
+          if (opt.options.verbose) {
+            common.logWrite("deleted %s: %s", name, JSON.stringify(revisions));
+          }
+          return {item:name, revisions};
         } );
     }
     return null;
@@ -91,7 +90,7 @@ if ( !opt.options.numToKeep ) {
   process.exit(1);
 }
 
-apigeeEdge.connect(common.optToOptions(opt))
+apigee.connect(common.optToOptions(opt))
   .then ( org => {
     let readOptions = {};
     const collectionName = (opt.options.sharedflows) ? "sharedflows" : "proxies";
@@ -123,9 +122,9 @@ apigeeEdge.connect(common.optToOptions(opt))
 
         return results
             .reduce(reducer, Promise.resolve([]))
-            .then( arrayOfResults => {
-              arrayOfResults = arrayOfResults.filter( x => !!x );
-              common.logWrite('summary deleted: ' + JSON.stringify(arrayOfResults));
+            .then( a => {
+              a = a.filter( x => !!x );
+              common.logWrite('summary deleted: ' + JSON.stringify(a));
             });
       });
   })

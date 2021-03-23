@@ -3,12 +3,11 @@
 // addAppCredential.js
 // ------------------------------------------------------------------
 //
-// Add a new credential to a developer app in Apigee Edge. If the developer app
+// Add a new credential to a developer app in Apigee. If the developer app
 // does not exist, it is created.  The credential consists of a client id and
 // secret. You can explicitly specify either or both.
 //
-//
-// Copyright 2017-2020 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,18 +21,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-July-01 17:34:51>
+// last saved: <2021-March-23 11:01:00>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
-      sprintf    = require('sprintf-js').sprintf,
-      Getopt     = require('node-getopt'),
-      util       = require('util'),
-      version    = '20200701-1634',
+const apigeejs    = require('apigee-edge-js'),
+      common      = apigeejs.utility,
+      apigee      = apigeejs.apigee,
+      sprintf     = require('sprintf-js').sprintf,
+      Getopt      = require('node-getopt'),
+      util        = require('util'),
+      version     = '20210323-1058',
       credlengths = { MAX: 256, MIN: 16, DEFAULT: 52 },
-      defaults   = { credlength : credlengths.DEFAULT },
-      getopt     = new Getopt(common.commonOptions.concat([
+      defaults    = { credlength : credlengths.DEFAULT },
+      getopt      = new Getopt(common.commonOptions.concat([
       ['p' , 'product=ARG', 'required. name of the API product to enable on this app, or a comma-separated list of names.'],
       ['E' , 'email=ARG', 'required. email address of the developer for which to create the app.'],
       ['A' , 'appname=ARG', 'required. name for the app.'],
@@ -92,8 +91,8 @@ function getValidCred(name) {
 // ========================================================
 
 console.log(
-  'Apigee Edge App Credential tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee App Credential tool, version: ${version}\n` +
+    `Node.js ${process.version}\n`);
 
 common.logWrite('start');
 
@@ -126,85 +125,83 @@ if ( !opt.options.email ) {
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
-apigeeEdge.connect(common.optToOptions(opt))
-  .then ( org => {
-    common.logWrite('connected');
-    return org.developers.get({ developerEmail : opt.options.email })
-      .then( dev => {
-        let options = {
-              developerEmail : opt.options.email,
-              appName : opt.options.appname,
-              apiProduct : opt.options.product.split(','),
-              expiry : opt.options.expiry
-            };
-        // There are 4 different cases, corresponding to the 2x2 matrix of
-        // possibilities:
-        // App already exists, or not.
-        // User is providing credentials, or not.
-        //
-        return ensureAppExists(org, options)
-          .then(({app, isNew}) => {
-            let p = Promise.resolve({app});
-            if (opt.options.clientid || opt.options.secret) {
-              // an explicitly supplied clientid or secret, or both.
-              if (isNew) {
-                // The app has just been newly created. The user has explicitly
-                // supplied credentials. Therefore, delete the existing
-                // credential and add a new one.
-                let options2 = {
-                      consumerKey : app.credentials[0].consumerKey,
-                      appName : opt.options.appname,
-                      developerEmail : opt.options.email
-                    };
-                p = p.then( _ => org.appcredentials.del(options2) );
-              }
-              else {
-                // not a new app, so no need to delete newly-created credential
-              }
-              // add the specified new credential
-              p = p.then( _ => {
-                options.clientId = getValidCred("clientid");
-                options.clientSecret = getValidCred("secret");
-                if (opt.options.expiry) {
-                  common.logWrite('WARNING: it is not possible to set a credential expiry with an explicitly-supplied client id and secret');
-                }
-                return org.appcredentials.add(options);
-              });
-            }
-            else {
-              if ( ! isNew) {
-                // not a new app, we want to add a *apigee generated* credential
-                p = p.then(_ => org.appcredentials.add(options))
-                  .then( app => app.credentials[0]);
-              }
-              else {
-                // transform for the output
-                p = p.then( _ => app.credentials[0]);
-              }
-            }
-            return p;
-          })
-          .then( r => console.log('result: ' + util.format(r)));
-      })
-      .catch( e => {
-        let s = String(e);
-        if (s == "Error: bad status: 404") {
-          switch (e.result.code) {
-          case "keymanagement.service.InvalidClientIdForGivenApp":
-            console.log('That clientId is invalid. Duplicate?');
-            break;
-          case "developer.service.DeveloperDoesNotExist":
-            console.log('That developer does not exist.');
-            break;
-          default :
-            console.log(e.code);
-            console.log('Unknown error.');
-            break;
-          }
-        }
-        else {
-          console.error('error: ' + util.format(e) );
-        }
-      });
-  })
+apigee.connect(common.optToOptions(opt))
+  .then( org =>
+         org.developers.get({ developerEmail : opt.options.email })
+         .then( dev => {
+           let options = {
+                 developerEmail : opt.options.email,
+                 appName : opt.options.appname,
+                 apiProduct : opt.options.product.split(','),
+                 expiry : opt.options.expiry
+               };
+           // There are 4 different cases, corresponding to the 2x2 matrix of
+           // possibilities:
+           // App already exists, or not.
+           // User is providing credentials, or not.
+           //
+           return ensureAppExists(org, options)
+             .then(({app, isNew}) => {
+               let p = Promise.resolve({app});
+               if (opt.options.clientid || opt.options.secret) {
+                 // an explicitly supplied clientid or secret, or both.
+                 if (isNew) {
+                   // The app has just been newly created. The user has explicitly
+                   // supplied credentials. Therefore, delete the existing
+                   // credential and add a new one.
+                   let options2 = {
+                         consumerKey : app.credentials[0].consumerKey,
+                         appName : opt.options.appname,
+                         developerEmail : opt.options.email
+                       };
+                   p = p.then( _ => org.appcredentials.del(options2) );
+                 }
+                 else {
+                   // not a new app, so no need to delete newly-created credential
+                 }
+                 // add the specified new credential
+                 p = p.then( _ => {
+                   options.clientId = getValidCred("clientid");
+                   options.clientSecret = getValidCred("secret");
+                   if (opt.options.expiry) {
+                     common.logWrite('WARNING: it is not possible to set a credential expiry with an explicitly-supplied client id and secret');
+                   }
+                   return org.appcredentials.add(options);
+                 });
+               }
+               else {
+                 if ( ! isNew) {
+                   // not a new app, we want to add a *apigee generated* credential
+                   p = p.then(_ => org.appcredentials.add(options))
+                     .then( app => app.credentials[0]);
+                 }
+                 else {
+                   // transform for the output
+                   p = p.then( _ => app.credentials[0]);
+                 }
+               }
+               return p;
+             })
+             .then( r => console.log('result: ' + util.format(r)));
+         })
+         .catch( e => {
+           let s = String(e);
+           if (s == "Error: bad status: 404") {
+             switch (e.result.code) {
+             case "keymanagement.service.InvalidClientIdForGivenApp":
+               console.log('That clientId is invalid. Duplicate?');
+               break;
+             case "developer.service.DeveloperDoesNotExist":
+               console.log('That developer does not exist.');
+               break;
+             default :
+               console.log(e.code);
+               console.log('Unknown error.');
+               break;
+             }
+           }
+           else {
+             console.error('error: ' + util.format(e) );
+           }
+         }))
   .catch( e => console.error('error connecting: ' + util.format(e) ) );

@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------
 // undeploy and delete an Apigee Edge proxy that has a name with a specific prefix.
 //
-// Copyright 2017-2019 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,92 +18,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-February-11 12:50:59>
+// last saved: <2021-March-22 18:28:57>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
-      async      = require('async'),
-      merge      = require('merge'),
-      sprintf    = require('sprintf-js').sprintf,
+const apigeejs   = require('apigee-edge-js'),
+      common     = apigeejs.utility,
+      apigee     = apigeejs.apigee,
+      util       = require('util'),
       Getopt     = require('node-getopt'),
-      version    = '20190211-1250',
+      version    = '20210322-1807',
       getopt     = new Getopt(common.commonOptions.concat([
         ['P' , 'prefix=ARG', 'required. name prefix. All API Proxies with names starting with this prefix will be removed.' ]
       ])).bindHelp();
 
 // ========================================================
 
-function handleError(e) {
-    if (e) {
-      console.log(e);
-      console.log(e.stack);
-      process.exit(1);
-    }
-}
-
-function undeployAndRemoveRevision (org, options) {
-  return function (environment, callback) {
-    var undeployOptions = merge(options, { environment: environment.name});
-    org.proxies.undeploy(undeployOptions, function(e, deployments) {
-      handleError(e);
-      callback(e, null);
+function removeOneProxy(org, proxyName) {
+  return org.environments.get()
+    .then(environments => {
+      const reducer =
+        (promise, env) =>
+      promise .then( accumulator =>
+                     org.proxies.undeploy({ name: proxyName, env })
+                     .then( r => [ ...accumulator, {env, r} ] )
+                   );
+      return environments
+        .reduce(reducer, Promise.resolve([]))
+        .then( _ => org.proxies.del({name: proxyName}));
     });
-  };
 }
 
-function checkAndMaybeRemoveRevision (org, proxyName) {
-  return function (revision, callback) {
-    var options = { name:proxyName, revision:revision };
-    org.proxies.getDeployments(options, function(e, deployments) {
-      if (! deployments.environment || deployments.environment.length === 0) {
-        org.proxies.del(options, function(e, result) {
-          callback(e, options);
-        });
-      }
-      else {
-        async.mapSeries(deployments.environment,
-                        undeployAndRemoveRevision(org, options),
-                        function(e, results) {
-                          handleError(e);
-                          org.proxies.del(options, function(e, ignoredResult) {
-                            callback(e, options);
-                          });
-                        });
-      }
-    });
-  };
-}
-
-function doneAllRevisions(org, proxyName, callback) {
-  return function(e, results) {
-    handleError(e);
-    org.proxies.del({name: proxyName}, function(e, ignoredDeleteResult) {
-      callback(e, {});
-    });
-  };
-}
-
-function removeOneProxy(org) {
-  return function(proxyName, callback) {
-    org.proxies.getRevisions({ name: proxyName }, function(e, result) {
-      handleError(e);
-      common.logWrite('revisions %s: %s', proxyName, JSON.stringify(result));
-      async.mapSeries(result,
-                      checkAndMaybeRemoveRevision(org, proxyName),
-                      doneAllRevisions(org, proxyName, callback));
-    });
-  };
-}
-
-function doneAllProxies(e, results) {
-  handleError(e);
+function doneAllProxies(results) {
   var flattened = [].concat.apply([], results);
   common.logWrite('result %s', JSON.stringify(flattened));
 }
 
 console.log(
-  'Apigee Edge Proxy Undeploy + Delete tool, version: ' + version + '\n' +
+  'Apigee Proxy Undeploy + Delete tool, version: ' + version + '\n' +
     'Node.js ' + process.version + '\n');
 
 common.logWrite('start');
@@ -117,20 +67,25 @@ if ( ! opt.options.prefix ) {
 }
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
-apigeeEdge.connect(common.optToOptions(opt), function(e, org){
-  if (e) {
-    common.logWrite(JSON.stringify(e, null, 2));
-    process.exit(1);
-  }
-  common.logWrite('connected');
-  common.logWrite('undeploying and deleting...');
-  org.proxies.get(function(e, proxies) {
-    if (e) {
-      common.logWrite('error: ' + JSON.stringify(e, null, 2));
-      if (proxies) { common.logWrite(JSON.stringify(proxies, null, 2)); }
-      process.exit(1);
-    }
-    proxies = proxies.filter( name => name.startsWith(opt.options.prefix));
-    async.mapSeries(proxies, removeOneProxy(org), doneAllProxies);
-  });
-});
+
+apigee
+  .connect(common.optToOptions(opt))
+  .then(org => {
+    common.logWrite('connected');
+    common.logWrite('undeploying and deleting...');
+    return org.proxies.get()
+      .then(proxies => {
+        proxies = proxies.filter( name => name.startsWith(opt.options.prefix));
+        const reducer =
+          (promise, item) =>
+        promise .then( accumulator =>
+                       removeOneProxy(org, item)
+                       .then( r => [ ...accumulator, {item, r} ] )
+                     );
+        return proxies
+          .reduce(reducer, Promise.resolve([]))
+          .then( doneAllProxies );
+
+      });
+  })
+  .catch( e => console.log('while executing, error: ' + util.format(e)) );

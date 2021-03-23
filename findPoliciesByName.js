@@ -19,19 +19,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-16 09:54:04>
+// last saved: <2021-March-23 08:49:04>
 
 const apigeejs   = require('apigee-edge-js'),
       common     = apigeejs.utility,
-      apigee     = apigeejs.edge,
+      apigee     = apigeejs.apigee,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
       util       = require('util'),
-      version    = '20210316-0952',
+      version    = '20210323-0848',
       getopt     = new Getopt(common.commonOptions.concat([
         ['P' , 'proxiesonly', 'Optional. Look for policies only within proxies.'],
         ['S' , 'sharedflowsonly', 'Optional. Look for policies only within sharedflows.'],
-        ['N' , 'policypattern=ARG', 'Required. a regular expression. Look for policies that match a regexp.'],
+        ['' , 'policypattern=ARG', 'Required. a regular expression. Look for policies that match a regexp.'],
         ['R' , 'proxypattern=ARG', 'Optional. a regular expression. Look only in proxies that match this regexp.'],
         ['L' , 'latestrevisionnumber', 'Optional. only look in the latest revision number for each proxy.']
       ])).bindHelp();

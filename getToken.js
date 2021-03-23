@@ -19,21 +19,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-February-17 13:14:58>
+// last saved: <2021-March-23 08:51:17>
 
 const apigeejs   = require('apigee-edge-js'),
       common     = apigeejs.utility,
-      apigee     = apigeejs.edge,
+      apigee     = apigeejs.apigee,
       Getopt     = require('node-getopt'),
-      version    = '20210217-1312',
+      version    = '20210323-0851',
       getopt     = new Getopt(common.commonOptions).bindHelp();
 
 let opt = getopt.parse(process.argv.slice(2));
 
 if (opt.options.verbose) {
   console.log(
-    'Edge Get Token, version: ' + version + '\n' +
-      'Node.js ' + process.version + '\n');
+    `Edge Get Token, version: ${version}\n` +
+      `Node.js ${process.version}\n`);
 }
 
 common.verifyCommonRequiredParameters(opt.options, getopt);

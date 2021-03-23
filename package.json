@@ -1,7 +1,7 @@
 {
-  "name": "apigee-edge-js-examples",
-  "version": "0.4.20",
-  "description": "Examples for using the Apigee Edge nodeJS library",
+  "name": "apigee-js-examples",
+  "version": "0.4.24",
+  "description": "Examples for using the Apigee nodeJS library",
   "main": "importAndDeploy.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -13,7 +13,8 @@
   "author": "dchiesa@google.com",
   "license": "Apache-2.0",
   "dependencies": {
-    "apigee-edge-js": "^0.4.21",
+    "@peculiar/x509": "^1.2.2",
+    "apigee-edge-js": "^0.4.24",
     "async": "2.6.0",
     "merge": "1.2.1",
     "mkdirp": "1.0.3",

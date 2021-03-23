@@ -18,15 +18,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-February-03 18:39:01>
+// last saved: <2021-March-23 08:51:26>
 /* jslint esversion:9 */
 
 const apigeejs   = require('apigee-edge-js'),
       util       = require('util'),
       common     = apigeejs.utility,
-      apigee     = apigeejs.edge,
+      apigee     = apigeejs.apigee,
       Getopt     = require('node-getopt'),
-      version    = '20210203-1839',
+      version    = '20210323-0851',
       getopt     = new Getopt(common.commonOptions.concat([
         ['A' , 'all', 'optional. Undeploy (and optionally delete) all API Proxies.' ],
         ['P' , 'prefix=ARG', 'optional. Undeploy (and optionally delete) API Proxies with names starting with this prefix.' ],

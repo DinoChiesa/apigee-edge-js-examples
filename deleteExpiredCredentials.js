@@ -1,7 +1,7 @@
 // deleteExpiredCredentials.js
 // ------------------------------------------------------------------
 //
-// Copyright 2017-2020 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,15 +16,15 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2020-November-04 08:21:06>
+// last saved: <2021-March-23 08:53:43>
 /* global process */
 
-const edgejs     = require('apigee-edge-js'),
+const apigeejs   = require('apigee-edge-js'),
       util       = require('util'),
-      common     = edgejs.utility,
-      apigee     = edgejs.edge,
+      common     = apigeejs.utility,
+      apigee     = apigeejs.apigee,
       Getopt     = require('node-getopt'),
-      version    = '20201103-1759',
+      version    = '20210323-0853',
       defaults   = { timespan: '0d'},
       getopt     = new Getopt(common.commonOptions.concat([
         ['' , 'timespan=ARG', 'optional. timespan threshold for "soon". Eg, 30d, 40w, 1y,... Default: ' + defaults.timespan],

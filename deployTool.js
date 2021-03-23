@@ -20,14 +20,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-February-17 13:18:17>
+// last saved: <2021-March-23 08:49:57>
 
 const apigeejs   = require('apigee-edge-js'),
       common     = apigeejs.utility,
-      apigee     = apigeejs.edge,
+      apigee     = apigeejs.apigee,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20210217-1318',
+      version    = '20210323-0849',
       defaults   = { basepath : '/' },
       getopt     = new Getopt(common.commonOptions.concat([
         ['N' , 'name=ARG', 'name of the proxy or sharedflow to deploy. The asset must exist. Separate multiple environments with a comma.'],

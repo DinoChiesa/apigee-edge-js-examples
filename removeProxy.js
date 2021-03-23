@@ -1,7 +1,7 @@
 // removeProxy.js
 // ------------------------------------------------------------------
 //
-// Copyright 2018-2020 Google LLC.
+// Copyright 2018-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,15 +16,15 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2020-November-04 08:18:47>
+// last saved: <2021-March-23 08:54:47>
 /* global process */
 
-const edgejs     = require('apigee-edge-js'),
+const apigeejs   = require('apigee-edge-js'),
       util       = require('util'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
+      common     = apigeejs.utility,
+      apigee     = apigeejs.apigee,
       Getopt     = require('node-getopt'),
-      version    = '20201103-1235',
+      version    = '20210323-0854',
       getopt     = new Getopt(common.commonOptions.concat([
         ['P', 'proxy=ARG', 'Required. the proxy to remove.'],
         ['' , 'doit', 'Optional. actually make the desired changes.']
@@ -33,8 +33,8 @@ const edgejs     = require('apigee-edge-js'),
 // ========================================================
 
 console.log(
-  'Apigee Edge removeProxy.js tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee Edge removeProxy.js tool, version: ${version}\n` +
+    `Node.js ${process.version}\n`);
 
 common.logWrite('start');
 
@@ -52,7 +52,7 @@ if ( ! opt.options.doit) {
   common.logWrite('will not make any changes...');
 }
 
-apigeeEdge.connect(common.optToOptions(opt))
+apigee.connect(common.optToOptions(opt))
   .then(org =>
         org.proxies.get({name:opt.options.proxy})
         .then(proxy => JSON.stringify(proxy))

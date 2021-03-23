@@ -18,23 +18,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-November-06 09:42:08>
+// last saved: <2021-March-23 08:52:22>
 
 const fs         = require('fs'),
-      edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
+      apigeejs   = require('apigee-edge-js'),
+      common     = apigeejs.utility,
+      apigee     = apigeejs.apigee,
       sprintf    = require('sprintf-js').sprintf,
       util       = require('util'),
       Getopt     = require('node-getopt'),
-      version    = '20201106-0940',
+      version    = '20210323-0851',
       defaults   = { mapname : 'settings' },
       getopt     = new Getopt(common.commonOptions.concat([
-      ['e' , 'env=ARG', 'required. the Edge environment for which to store the KVM data'],
-      ['m' , 'mapname=ARG', 'optional. name of the KVM in Apigee. Will be created if nec. Default: ' + defaults.mapname],
-      ['E' , 'encrypted', 'optional. use an encrypted KVM. Applies only if creating a new KVM. Default: not.'],
-      ['F' , 'file=ARG', 'required. the filesystem file to read, to get the content.'],
-      ['N' , 'entryname=ARG', 'required. name of the entry in KVM to store the content.']
+        ['e' , 'env=ARG', 'required. the Edge environment for which to store the KVM data'],
+        ['m' , 'mapname=ARG', 'optional. name of the KVM in Apigee. Will be created if nec. Default: ' + defaults.mapname],
+        ['E' , 'encrypted', 'optional. use an encrypted KVM. Applies only if creating a new KVM. Default: not.'],
+        ['F' , 'file=ARG', 'required. the filesystem file to read, to get the content.'],
+        ['' , 'entryname=ARG', 'required. name of the entry in KVM to store the content.']
     ])).bindHelp();
 
 // ========================================================
@@ -83,7 +83,7 @@ if ( !opt.options.mapname ) {
 }
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
-apigeeEdge.connect(common.optToOptions(opt))
+apigee.connect(common.optToOptions(opt))
   .then ( org => {
     common.logWrite('connected');
     return org.kvms.get({ env: opt.options.env })

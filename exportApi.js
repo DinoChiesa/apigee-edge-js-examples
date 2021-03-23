@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------
 // export one or more Apigee Edge proxy bundles
 //
-// Copyright 2017-2019 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,90 +18,84 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-February-11 13:16:44>
+// last saved: <2021-March-23 12:03:09>
 
-const fs         = require('fs'),
-      path       = require('path'),
-      mkdirp     = require('mkdirp'),
-      edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
-      sprintf    = require('sprintf-js').sprintf,
-      async      = require('async'),
-      Getopt     = require('node-getopt'),
-      version    = '20190211-1316',
-      defaults   = { destination : 'exported' },
-      getopt     = new Getopt(common.commonOptions.concat([
-        ['N' , 'name=ARG', 'name of existing API proxy or shared flow'],
+const fs       = require('fs'),
+      path     = require('path'),
+      mkdirp   = require('mkdirp'),
+      util     = require('util'),
+      apigeejs = require('apigee-edge-js'),
+      common   = apigeejs.utility,
+      apigee   = apigeejs.apigee,
+      sprintf  = require('sprintf-js').sprintf,
+      Getopt   = require('node-getopt'),
+      version  = '20210323-1147',
+      defaults = { destination : 'exported' },
+      getopt   = new Getopt(common.commonOptions.concat([
+        ['' , 'name=ARG', 'name of existing API proxy or shared flow'],
         ['P' , 'pattern=ARG', 'regex pattern for name of existing API proxy or shared flow; this always exports the latest revision.'],
         ['D' , 'destination=ARG', 'directory for export. Default: exported'],
         ['t' , 'trial', 'trial only. Do not actually export'],
         ['R' , 'revision=ARG', 'revision of the asset to export. Default: latest']
       ])).bindHelp();
 
-function exportOneProxyRevision(org, name, revision, cb) {
+process.on('unhandledRejection',
+            r => console.log('\n*** unhandled promise rejection: ' + util.format(r)));
+
+let opt = getopt.parse(process.argv.slice(2));
+
+
+function exportOneProxyRevision(org, name, revision) {
   if (opt.options.trial) {
     common.logWrite('WOULD EXPORT HERE %s, revision:%s', name, revision);
-    return cb(null, sprintf("%s-%s.zip", name, revision));
+    return sprintf("%s-r%s.zip", name, revision);
   }
-  else {
-    org.proxies.export({name:name, revision:revision}, function(e, result) {
-      if (e) {
-        common.logWrite("ERROR:\n" + JSON.stringify(e, null, 2));
-        if (result) { common.logWrite(JSON.stringify(result, null, 2)); }
-        if (cb) { return cb(e); }
-        process.exit(1);
-      }
+
+  return org.proxies.export({name:name, revision:revision})
+    .then( result => {
       fs.writeFileSync(path.join(opt.options.destination, result.filename), result.buffer);
-      common.logWrite('export ok file: %s', result.filename);
-      if (cb) { cb(null, result.filename); }
+      if (opt.options.verbose) {
+        common.logWrite('export ok file: %s', result.filename);
+      }
+      return result.filename;
     });
-  }
 }
 
-function exportLatestRevisionOfProxy(org, name, cb) {
-  org.proxies.getRevisions({name:name}, function(e, result){
-    if (e) {
-      common.logWrite("ERROR:\n" + JSON.stringify(e, null, 2));
-      if (cb) { return cb(e); }
-      process.exit(1);
-    }
-    var latestRevision = result[result.length - 1];
-    exportOneProxyRevision(org, name, latestRevision, cb);
-  });
+function exportLatestRevisionOfProxy(org, name) {
+  return org.proxies.getRevisions({name})
+    .then( result => {
+      let latestRevision = result[result.length - 1];
+      return exportOneProxyRevision(org, name, latestRevision);
+    });
 }
 
 function proxyExporter(org) {
-  return function(item, cb) {
-    return exportLatestRevisionOfProxy(org, item, cb);
+  return function(item) {
+    return exportLatestRevisionOfProxy(org, item);
   };
 }
 
-function exportLatestRevisionOfMatchingProxies(org, pattern, cb) {
-  org.proxies.get({}, function(e, result){
-    if (e) {
-      common.logWrite("ERROR:\n" + JSON.stringify(e, null, 2));
-      if (cb) { return cb(e); }
-      process.exit(1);
-    }
-    var re1 = new RegExp(pattern);
-    result = result.filter( a => a.match(re1) );
-    async.mapSeries(result, proxyExporter(org), function (e, results) {
-      cb(e, results);
+const exportLatestRevisionOfMatchingProxies = (org, pattern) =>
+ org.proxies.get({})
+    .then(result => {
+      // match
+      result = result.filter( a => a.match(new RegExp(pattern)) );
+      let fn1 =
+        (p, name) => p.then( acc => exportLatestRevisionOfProxy(org, name).then( r => [...acc, r]));
+      return result.reduce(fn1, Promise.resolve([]));
     });
-  });
-}
+
 
 // ========================================================
 
+if (opt.options.verbose) {
+
 console.log(
-  'Apigee Edge Proxy Export tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee Proxy Export tool, version: ${version}\n` +
+    `Node.js ${process.version}\n`);
 
-common.logWrite('start');
-
-// process.argv array starts with 'node' and 'scriptname.js'
-var opt = getopt.parse(process.argv.slice(2));
+  common.logWrite('start');
+}
 
 if ( !opt.options.name && !opt.options.pattern ) {
   console.log('You must specify a name, or a pattern for the name, for the proxy or sharedflow to be exported');
@@ -129,32 +123,26 @@ mkdirp.sync(opt.options.destination);
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
-apigeeEdge.connect(common.optToOptions(opt), function(e, org) {
-  if (e) {
-    common.logWrite(JSON.stringify(e, null, 2));
-    //console.log(e.stack);
-    process.exit(1);
-  }
-  common.logWrite('connected');
+apigee.connect(common.optToOptions(opt))
+  .then( org => {
+    common.logWrite('connected');
 
-  if (opt.options.name && opt.options.revision) {
-    common.logWrite('exporting');
-    exportOneProxyRevision(org, opt.options.name, opt.options.revision, function(e, result){
-      common.logWrite('ok');
-    });
-  }
-  else if (opt.options.name) {
-    exportLatestRevisionOfProxy(org, opt.options.name, function(e, result){
-      common.logWrite('ok');
-    });
-  }
-  else if (opt.options.pattern) {
-    exportLatestRevisionOfMatchingProxies(org, opt.options.pattern, function(e, result){
-      common.logWrite('ok');
-      console.log(JSON.stringify(result, null, 2) + '\n');
-    });
-  }
-  else {
-    common.logWrite("Unexpected input arguments: no name and no pattern.");
-  }
-});
+    if (opt.options.name && opt.options.revision) {
+      return exportOneProxyRevision(org, opt.options.name, opt.options.revision);
+    }
+    if (opt.options.name) {
+      return exportLatestRevisionOfProxy(org, opt.options.name);
+    }
+    if (opt.options.pattern) {
+      return exportLatestRevisionOfMatchingProxies(org, opt.options.pattern);
+    }
+
+    throw new Error("Unexpected input arguments: no name and no pattern.");
+  })
+
+  .then( result => {
+    common.logWrite('ok');
+    console.log(JSON.stringify(result, null, 2));
+  })
+
+  .catch( e => console.log('while executing, error: ' + util.format(e)) );

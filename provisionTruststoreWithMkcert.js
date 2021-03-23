@@ -5,7 +5,7 @@
 // ------------------------------------------------------------------
 // download certs from mkcert and load them into an Apigee Truststore.
 //
-// Copyright 2017-2018 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,17 +20,18 @@
 // limitations under the License.
 //
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
+const apigeejs   = require('apigee-edge-js'),
+      x509       = require('@peculiar/x509'),
+      common     = apigeejs.utility,
       request    = promisifyRequest(require('request')),
-      apigeeEdge = edgejs.edge,
+      apigee     = apigeejs.apigee,
       Getopt     = require('node-getopt'),
-      version    = '20190211-1249',
+      version    = '20210322-1906',
       defaults   = { basepath : '/' },
       getopt     = new Getopt(common.commonOptions.concat([
-        ['L', 'list',     'optional. just list the labels of certs in mkcert (do not create truststore).' ],
-        ['N', 'name=ARG', 'This is the name for the Truststore to be created and populated.' ],
-        ['F', 'filter=ARG', 'the labels to include. Case insensitive. eg: --filter verisign,comodo,geotrust' ],
+        ['', 'list',     'optional. just list the labels of certs in mkcert (do not create truststore).' ],
+        ['', 'name=ARG', 'This is the name for the Truststore to be created and populated.' ],
+        ['', 'filter=ARG', 'the labels to include. Case insensitive. eg: --filter verisign,comodo,geotrust' ],
         ['e', 'env=ARG',  'the Edge environment in which to create the Truststore.' ]
       ])).bindHelp();
 
@@ -163,11 +164,27 @@ function genCertOptions (certName){
 }
 
 function genImportOptions(storeOptions, body, certName) {
-  return Object.assign(Object.assign({}, storeOptions), { certificate: body, alias: aliasify(certName) } );
+  const cert = new x509.X509Certificate(body);
+  const now = Date.now();
+  // console.log(cert.subject);
+  // console.log(cert.notBefore);
+  // console.log(cert.notAfter);
+  let valid = false;
+  if (cert.notBefore > now) {
+    //console.log('not yet valid');
+  }
+  else if (cert.notAfter < now) {
+    // console.log('expired');
+  }
+  else {
+    //console.log('valid');
+    valid = true;
+  }
+  return {options:{ ...storeOptions, certificate: body, alias: aliasify(certName) }, valid};
 }
 
 console.log(
-  'Apigee Edge Truststore provisioning tool, version: ' + version + '\n' +
+  'Apigee Truststore provisioning tool, version: ' + version + '\n' +
     'Node.js ' + process.version + '\n');
 
 common.logWrite('start');
@@ -221,25 +238,38 @@ request({method:'get', url: 'https://mkcert.org/labels/'})
 
       if (certs.length) {
         let trustStoreOptions = {environment:opt.options.env, name: opt.options.name};
-        apigeeEdge.connect(common.optToOptions(opt))
-          .then( org => {
+        apigee
+          .connect(common.optToOptions(opt))
+          .then( org =>
             org.keystores.get(trustStoreOptions)
-              .then( result =>
-                     (result.error && result.statusCode == 404) ? org.keystores.create(trustStoreOptions) : {} )
+                 .then( result => {
+                   console.log('no error...');
+                 } )
+                 .catch( e =>
+                          (e.result && e.result.code == "messaging.config.beans.KeyStoreNotFound") ?
+                         org.keystores.create(trustStoreOptions) : { } )
+
               .then( resp => {
-                handleError(resp);
                 common.logWrite('uploading %d certificates...', certs.length);
 
                 let fn = (p, certName) =>
                   p.then( () =>
                           request(genCertOptions(certName))
                           .then( ({response, body}) => {
-                            common.logWrite('import %s...', certName);
-                            return org.keystores.importCert(genImportOptions(trustStoreOptions, body, certName));
+                            let {options, valid} = genImportOptions(trustStoreOptions, body, certName);
+                            if (valid) {
+                              common.logWrite('import %s...', certName);
+                              return org.keystores.importCert(options);
+                            }
+                            common.logWrite('cert %s is not valid...', certName);
+                            return {};
+                          })
+                          .catch(e => {
+                            common.logWrite('error parsing cert %s: ', certName);
+                            console.log(e);
                           }));
                 return certs.reduce(fn, Promise.resolve());
-              });
-          })
+              }))
           .catch( e => console.log('error: ' + e.stack));
       }
       else {

@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------
 // list proxies (and maybe deployments of same) in Apigee
 //
-// Copyright 2017-2020 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,15 +18,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-November-03 13:38:14>
+// last saved: <2021-March-23 08:56:02>
 
-const edgejs     = require('apigee-edge-js'),
+const apigeejs   = require('apigee-edge-js'),
       util       = require('util'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
+      common     = apigeejs.utility,
+      apigee     = edgejs.apigee,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20201103-1245',
+      version    = '20210323-0855',
       getopt     = new Getopt(common.commonOptions.concat([
           ['E' , 'elaborate', 'Optional. inquire and show the deployments of each proxy, too.'],
       ])).bindHelp();
@@ -34,8 +34,8 @@ const edgejs     = require('apigee-edge-js'),
 // ========================================================
 
 console.log(
-  'Apigee List & Query Proxies tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee List & Query Proxies tool, version: ${version}\n` +
+    `Node.js ${process.version}\n`);
 
 common.logWrite('start');
 
@@ -43,7 +43,7 @@ common.logWrite('start');
 var opt = getopt.parse(process.argv.slice(2));
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
-apigeeEdge.connect(common.optToOptions(opt))
+apigee.connect(common.optToOptions(opt))
 .then(org =>
     org.proxies.get({})
       .then(proxies => (common.logWrite(sprintf('found %d proxies', proxies.length)), proxies))

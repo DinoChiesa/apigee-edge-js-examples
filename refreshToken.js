@@ -2,10 +2,10 @@
 /*jslint node:true */
 // refreshToken.js
 // ------------------------------------------------------------------
-// refresh a token for use with the Apigee Edge Admin API, regardless of
+// refresh a token for use with the Apigee Admin API, regardless of
 // whether there is an existing token or if it is expired or not.
 //
-// Copyright 2019 Google LLC.
+// Copyright 2019-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,24 +19,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2020-October-27 15:15:16>
+// last saved: <2021-March-23 08:57:33>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
-      Getopt     = require('node-getopt'),
-      version    = '20190708-1607',
-      getopt     = new Getopt(common.commonOptions).bindHelp();
+const apigeejs = require('apigee-edge-js'),
+      common   = apigeejs.utility,
+      apigee   = apigeejs.apigee,
+      Getopt   = require('node-getopt'),
+      version  = '20210323-0856',
+      getopt   = new Getopt(common.commonOptions).bindHelp();
 
 console.log(
-  'Edge Get Token, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee Get Token, version: ${version}\n` +
+    `Node.js ${process.version}\n`);
 
 var opt = getopt.parse(process.argv.slice(2));
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
-apigeeEdge.connect(common.optToOptions(opt))
+apigee.connect(common.optToOptions(opt))
   .then( org =>
     org.conn.getExistingToken()
       .then( existingToken => {

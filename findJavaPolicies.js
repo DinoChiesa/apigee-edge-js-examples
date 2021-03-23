@@ -21,15 +21,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-December-05 21:15:00>
+// last saved: <2021-March-23 11:08:54>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
-      Getopt     = require('node-getopt'),
-      util       = require('util'),
-      version    = '20191205-1955',
-      getopt     = new Getopt(common.commonOptions.concat([
+const apigeejs = require('apigee-edge-js'),
+      common   = apigeejs.utility,
+      apigee   = apigeejs.apigee,
+      Getopt   = require('node-getopt'),
+      util     = require('util'),
+      version  = '20210323-1104',
+      getopt   = new Getopt(common.commonOptions.concat([
         ['J' , 'jar=ARG', 'Optional. JAR name to find. Default: search for all JavaCallout policies.'],
         ['R' , 'regexp', 'Optional. Treat the -J option as a regexp. Default: perform string match.'],
         ['E' , 'proxyregexp=ARG', 'Optional. check only for proxies that match this regexp.'],
@@ -38,47 +38,45 @@ const edgejs     = require('apigee-edge-js'),
 
 function isKeeper(opt) {
   if (opt.options.proxyregexp) {
-    common.logWrite('using regex match (%s)',opt.options.proxyregexp);
-    let re1 = new RegExp(opt.options.proxyregexp);
-    return function(name) {
-      return name.match(re1);
-    };
+    common.logWrite('using regex match (%s)', opt.options.proxyregexp);
+    return name => name.match(new RegExp(opt.options.proxyregexp));
   }
   return () => true;
 }
 
-function checkRevisionForJar(org, proxyName) {
-  let regexp = (opt.options.regexp) ? new RegExp(opt.options.jar) : null;
-  return revision =>
+const checkRevisionForJar =
+  (org, proxyName) => {
+    let regexp = (opt.options.regexp) ? new RegExp(opt.options.jar) : null;
+    return revision =>
     org.proxies.getResourcesForRevision({name:proxyName, revision})
-        .then (result => {
-          let jars = result && result.filter( item => {
-                if ( ! item.startsWith('java://') ) return false;
-                let jarName = item.substring(7);
-                return (regexp) ? regexp.test(jarName) : (jarName == opt.options.jar);
-              });
-          return jars ? jars : null;
-        });
-}
+      .then (result => {
+        let jars = result && result.filter( item => {
+              if ( ! item.startsWith('java://') ) return false;
+              let jarName = item.substring(7);
+              return (regexp) ? regexp.test(jarName) : (jarName == opt.options.jar);
+            });
+        return jars ? jars : null;
+      });
+  };
 
 
-function checkRevisionForJava(org, proxyName) {
-  return revision =>
-    org.proxies.getPoliciesForRevision({name:proxyName, revision})
-    .then (policies => {
-      let reducer = (promise, policy) =>
-              promise .then( accumulator =>
-                             org.proxies.getPoliciesForRevision({ name: proxyName, revision, policy })
-                             .then( result =>  (result.policyType == 'JavaCallout') ? [ ...accumulator, policy ] : accumulator ));
-      return policies.reduce(reducer, Promise.resolve([]));
-    });
-}
+const checkRevisionForJava = (org, name) =>
+revision =>
+org.proxies.getPoliciesForRevision({name, revision})
+  .then (policies => {
+    let r = (p, policy) =>
+    p .then( a =>
+             org.proxies.getPoliciesForRevision({ name, revision, policy })
+             .then( result => (result.policyType == 'JavaCallout') ? [ ...a, policy ] : a ));
+    return policies.reduce(r, Promise.resolve([]));
+  });
+
 
 // ========================================================
 
 console.log(
-  'Apigee Edge JavaCallout/JAR check tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee JavaCallout/JAR check tool, version: ${version}\n` +
+    `Node.js ${process.version}\n`);
 
 common.logWrite('start');
 
@@ -86,8 +84,8 @@ common.logWrite('start');
 var opt = getopt.parse(process.argv.slice(2));
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
-apigeeEdge.connect(common.optToOptions(opt))
-  .then ( org =>
+apigee.connect(common.optToOptions(opt))
+  .then( org =>
           org.proxies.get({})
           .then(proxies => {
             let reducer = (promise, proxyname) =>

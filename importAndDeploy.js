@@ -18,15 +18,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-February-17 13:21:23>
+// last saved: <2021-March-23 08:48:16>
 
 const apigeejs   = require('apigee-edge-js'),
       common     = apigeejs.utility,
       util       = require('util'),
-      apigee     = apigeejs.edge,
+      apigee     = apigeejs.apigee,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20210217-1317',
+      version    = '20210323-0848',
       defaults   = { basepath : null },
       getopt     = new Getopt(common.commonOptions.concat([
         ['d' , 'source=ARG', 'source directory for the proxy files. Should be parent of dir "apiproxy" or "sharedflowbundle"'],

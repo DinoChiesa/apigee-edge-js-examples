@@ -2,9 +2,9 @@
 /*jslint node:true */
 // bulkExport.js
 // ------------------------------------------------------------------
-// export one or more Apigee Edge proxy bundles
+// export one or more Apigee proxy bundles
 //
-// Copyright 2017-2020 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-February-17 13:20:50>
+// last saved: <2021-March-23 08:50:14>
 
 const fs         = require('fs'),
       path       = require('path'),
@@ -26,13 +26,13 @@ const fs         = require('fs'),
       mkdirp     = require('mkdirp'),
       apigeejs   = require('apigee-edge-js'),
       common     = apigeejs.utility,
-      apigee     = apigeejs.edge,
+      apigee     = apigeejs.apigee,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20210217-1320',
+      version    = '20210323-0849',
       defaults   = { destination : 'exported-' + timeString() },
       getopt     = new Getopt(common.commonOptions.concat([
-        ['N' , 'name=ARG', 'name of existing API proxy or shared flow'],
+        ['' , 'name=ARG', 'name of existing API proxy or shared flow'],
         ['P' , 'pattern=ARG', 'regex pattern for name of existing API proxy or shared flow; this always exports the latest revision.'],
         ['D' , 'destination=ARG', 'directory for export. Default: exported'],
         ['t' , 'trial', 'trial only. Do not actually export'],
