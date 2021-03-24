@@ -3,7 +3,7 @@
 // findProxyForBasepath.js
 // ------------------------------------------------------------------
 //
-// Copyright 2018-2019 Google LLC.
+// Copyright 2018-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,92 +18,86 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2019-December-05 23:44:26>
+// last saved: <2021-March-23 18:17:35>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
-      util       = require('util'),
-      sprintf    = require('sprintf-js').sprintf,
-      Getopt     = require('node-getopt'),
-      version    = '20191205-2306',
-      getopt     = new Getopt(common.commonOptions.concat([
+const apigeejs = require('apigee-edge-js'),
+      common   = apigeejs.utility,
+      apigee   = apigeejs.apigee,
+      util     = require('util'),
+      sprintf  = require('sprintf-js').sprintf,
+      Getopt   = require('node-getopt'),
+      version  = '20210323-1810',
+      getopt   = new Getopt(common.commonOptions.concat([
         ['B' , 'basepath=ARG', 'Required. the basepath to find.'],
         ['R' , 'regexp', 'Optional. Treat the -B option as a regexp. Default: perform string match.'],
         ['' , 'proxypattern=ARG', 'Optional. a regular expression. Look only in proxies that match this regexp.'],
-        ['L' , 'latestrevisionnumber', 'Optional. only look in the latest revision number for each proxy.']
+        ['' , 'latestrevision', 'Optional. only look in the latest revision number for each proxy.']
       ])).bindHelp();
 
 function isKeeper(opt) {
   if (opt.options.proxypattern) {
     common.logWrite('using regex match (%s)',opt.options.proxypattern);
-    let re1 = new RegExp(opt.options.proxypattern);
-    return function(name) {
-      return name.match(re1);
-    };
+    return name => name.match(new RegExp(opt.options.proxypattern));
   }
   return () => true;
 }
 
-
-function getRevisionChecker(org, itemName) {
-  return revision =>
-    org.proxies.getEndpoints({ name: itemName, revision })
+const revisionChecker = (org, name) =>
+  revision =>
+    org.proxies.getEndpoints({ name, revision })
     .then( endpoints => {
-      let reducer = (promise, endpoint) =>
-        promise.then( accumulator =>
-                      org.proxies
-                      .getEndpoint({ name: itemName, revision, endpoint })
-                      .then( ep => {
-                        let isMatch = (opt.options.regexp) ?
-                          opt.options.regexp.test(ep.connection.basePath) :
-                          (ep.connection.basePath == opt.options.basepath);
-                        return isMatch ?
-                          [...accumulator,
-                           {
-                             name:ep.name,
-                             basePath:ep.connection.basePath,
-                             adminPath: sprintf('apis/%s/revisions/%s/endpoints/%s', itemName, revision, ep.name)
-                           }
-                          ]
-                        : accumulator;
-                      }));
+      let reducer = (p, endpoint) =>
+      p.then( accumulator =>
+              org.proxies
+              .getEndpoint({ name, revision, endpoint })
+              .then( ep => {
+                let isMatch = (opt.options.regexp) ?
+                  opt.options.regexp.test(ep.connection.basePath) :
+                  (ep.connection.basePath == opt.options.basepath);
+                return isMatch ?
+                  [...accumulator,
+                   {
+                     name: ep.name,
+                     basePath: ep.connection.basePath,
+                     adminPath: sprintf('apis/%s/revisions/%s/endpoints/%s', name, revision, ep.name)
+                   }
+                  ]
+                : accumulator;
+              }));
       return endpoints.reduce(reducer, Promise.resolve([]));
     });
-}
 
-// a function that returns a revision reducer for the named proxy
-function makeRevisionReducer(check) {
-  return (promise, revision) =>
-    promise.then( accumulator =>
-                  check(revision)
-                  .then( endpoint =>
-                         endpoint.length ? [...accumulator, { revision, endpoint }] : accumulator ));
-}
+const revisionReducer = check =>
+ (p, revision) =>
+    p.then( accumulator =>
+            check(revision)
+            .then( endpoint =>
+                   endpoint.length ? [...accumulator, { revision, endpoint }] : accumulator ));
 
-// expand from itemname to itemname and the list of revisions
-function getRevisionReducer(org) {
-  return (promise, itemname) =>
+
+const toLatestRevision = org =>
+ (promise, name) =>
     promise .then( accumulator =>
-                   org.proxies.get({ name: itemname })
+                   org.proxies.get({ name })
                    .then( ({revision}) => {
-                     if (opt.options.latestrevisionnumber) {
+                     if (opt.options.latestrevision) {
                        revision = [revision.pop()];
                      }
-                     return [ ...accumulator, {itemname, revision} ];
+                     return [ ...accumulator, {name, revision} ];
                    }));
-}
+
 
 // ========================================================
-
-console.log(
-  'Apigee Edge findProxyForBasepath.js tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
-
-common.logWrite('start');
-
 // process.argv array starts with 'node' and 'scriptname.js'
 var opt = getopt.parse(process.argv.slice(2));
+
+if (opt.options.verbose) {
+  console.log(
+    `Apigee findProxyForBasepath.js tool, version: ${version}\n` +
+      `Node.js ${process.version}\n`);
+
+  common.logWrite('start');
+}
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
@@ -117,7 +111,8 @@ if (opt.options.regexp) {
   opt.options.regexp = new RegExp(opt.options.basepath);
 }
 
-apigeeEdge.connect(common.optToOptions(opt))
+apigee
+  .connect(common.optToOptions(opt))
   .then(org =>
     org.proxies.get()
       .then( apiproxies => {
@@ -127,14 +122,15 @@ apigeeEdge.connect(common.optToOptions(opt))
         return apiproxies
           .filter( isKeeper(opt) )
           .sort()
-          .reduce( getRevisionReducer(org), Promise.resolve([]));
+          .reduce( toLatestRevision(org), Promise.resolve([]));
       })
       .then( itemsAndRevisions => {
-        let itemReducer = (promise, nameAndRevisions) =>
-          promise.then( accumulator => {
-            let check = getRevisionChecker(org, nameAndRevisions.itemname);
-            return nameAndRevisions.revision.reduce(makeRevisionReducer(check), Promise.resolve([]))
-              .then( a => a.length ? [...accumulator, {proxyname: nameAndRevisions.itemname, found:a}] : accumulator);
+        let itemReducer = (p, nameAndRevisions) =>
+          p.then( accumulator => {
+            let check = revisionChecker(org, nameAndRevisions.name);
+            return nameAndRevisions.revision
+              .reduce(revisionReducer(check), Promise.resolve([]))
+              .then( a => a.length ? [...accumulator, {proxyname: nameAndRevisions.name, found:a}] : accumulator);
         });
 
         return itemsAndRevisions.reduce(itemReducer, Promise.resolve([]));

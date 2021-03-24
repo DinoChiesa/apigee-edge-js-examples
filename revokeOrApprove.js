@@ -2,9 +2,9 @@
 /*jslint node:true */
 // revokeOrApprove.js
 // ------------------------------------------------------------------
-// Revoke a developer, app, credential, or product-on-credential.
+// Revoke or approve (unrevoke) a developer, app, credential, or product-on-credential.
 //
-// Copyright 2017-2019 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,42 +18,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-February-11 13:01:59>
+// last saved: <2021-March-23 17:31:17>
 
-const edgejs   = require('apigee-edge-js'),
-    common     = edgejs.utility,
-    apigeeEdge = edgejs.edge,
-    Getopt     = require('node-getopt'),
-    version    = '20190211-1301',
-    getopt     = new Getopt(common.commonOptions.concat([
-      ['d' , 'developer=ARG', 'optional. the email of the developer to revoke.'],
-      ['a' , 'app=ARG', 'optional. the developer app to revoke.'],
-      ['k' , 'key=ARG', 'optional. the key (credential) to revoke.'],
-      ['p' , 'product=ARG', 'optional. the product within the key to revoke.'],
-      ['A' , 'approve', 'optional. use this flag to approve the product, key, app or developer.'],
-      ['R' , 'revoke', 'optional. use this flag to revoke the product, key, app or developer.']
-    ])).bindHelp();
+const apigeejs = require('apigee-edge-js'),
+      common   = apigeejs.utility,
+      apigee   = apigeejs.apigee,
+      Getopt   = require('node-getopt'),
+      version  = '20210323-1731',
+      util     = require('util'),
+      getopt   = new Getopt(common.commonOptions.concat([
+        ['d' , 'developer=ARG', 'optional. the email of the developer to revoke.'],
+        ['a' , 'app=ARG', 'optional. the developer app to revoke.'],
+        ['k' , 'key=ARG', 'optional. the key (credential) to revoke.'],
+        ['p' , 'product=ARG', 'optional. the product within the key to revoke.'],
+        ['A' , 'approve', 'optional. use this flag to approve the product, key, app or developer.'],
+        ['R' , 'revoke', 'optional. use this flag to revoke the product, key, app or developer.']
+      ])).bindHelp();
 
 var action = null;
 
-function handleError(e) {
-    if (e) {
-      console.log(e);
-      console.log(e.stack);
-      process.exit(1);
-    }
-}
 
 // ========================================================
-
-console.log(
-  'Edge API product/key/dev/app revoker/approver tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
-
-common.logWrite('start');
-
 // process.argv array starts with 'node' and 'scriptname.js'
-var opt = getopt.parse(process.argv.slice(2));
+let opt = getopt.parse(process.argv.slice(2));
+
+if (opt.options.verbose) {
+  console.log(
+    `Apigee API product/key/dev/app revoker/approver tool, version: ${version}\n` +
+      `Node.js ${process.version}\n`);
+
+  common.logWrite('start');
+}
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
@@ -86,66 +81,56 @@ if ( ! action) {
   process.exit(1);
 }
 
-apigeeEdge.connect(common.optToOptions(opt), function(e, org) {
-  handleError(e);
+apigee
+  .connect(common.optToOptions(opt))
+  .then( org => {
+    if ( opt.options.key ) {
+      // revoking the key (credential) or a product under a key
+      let options = { key : opt.options.key };
+      if ( opt.options.product ) {
+        // revoke a product under a specific credential
+        options.apiproduct = opt.options.product;
+      }
 
-  if ( opt.options.key ) {
-    // revoking the key (credential) or a product under a key
-    let options = { key : opt.options.key };
-    if ( opt.options.product ) {
-      // revoke a product under a specific credential
-      options.apiproduct = opt.options.product;
-    }
+      let act = () =>
+      org.appcredentials[action](options)
+        .then( result => common.logWrite('ok'));
 
-    if ( ! opt.options.developer ) {
-      // revoke / approve the key, or the single product under the key
-      org.appcredentials[action](options, function(e, result){
-        handleError(e);
-        if ( ! result) {
-          common.logWrite('not found?');
-        }
-        else {
-          common.logWrite('ok');
-        }
-      });
-    }
-    else {
+      if ( ! opt.options.developer ) {
+        // revoke / approve the key, or the single product under the key
+        return act();
+      }
+
       // The user specified both the key and the developer, let's make
       // sure they're consistent before performing the action.
-      org.appcredentials.find({key:opt.options.key}, function(e, found){
-        handleError(e);
-        if ( ! found) {
-          return common.logWrite('That key was not found.');
-        }
-        if (found.developer.email != opt.options.developer) {
-          return common.logWrite('Error: mismatch between expected and actual developer.');
-        }
-        org.appcredentials[action](options, function(e, result){
-          handleError(e);
-          common.logWrite('ok');
+      return org.appcredentials.find({key:opt.options.key})
+        .then( found => {
+          if ( ! found) {
+            return common.logWrite('That key was not found.');
+          }
+          if (found.developer.email != opt.options.developer) {
+            return common.logWrite('Error: mismatch between expected and actual developer.');
+          }
+          return act();
         });
-      });
     }
-  }
 
-  else if (opt.options.developer) {
-    // revoking the developer or the app
-    let options = { developer:opt.options.developer };
+    if (opt.options.developer) {
+      // revoking the developer or the app
+      let options = { developer:opt.options.developer };
 
-    if ( ! opt.options.app ) {
-      // revoke / approve the developer
-      org.developers[action](options, function(e, result){
-        handleError(e);
-        common.logWrite('ok');
-      });
-    }
-    else {
+      if ( ! opt.options.app ) {
+        // revoke / approve the developer
+        return org.developers[action](options)
+          .then( result => common.logWrite('ok'));
+      }
+
       // revoke / approve the developer app (all keys)
       options.app = opt.options.app;
-      org.developerapps[action](options, function(e, result){
-        handleError(e);
-        common.logWrite('ok');
-      });
+      return org.developerapps[action](options)
+        .then( result => common.logWrite('ok'));
     }
-  }
-});
+    throw new Error('illegal parameters');
+  })
+
+  .catch( e => console.error('error: ' + util.format(e) ));

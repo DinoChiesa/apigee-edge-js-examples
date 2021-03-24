@@ -24,15 +24,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 11:19:04>
+// last saved: <2021-March-23 17:38:23>
 
-const apigeejs   = require('apigee-edge-js'),
-      common     = apigeejs.utility,
-      apigee     = apigeejs.apigee,
-      sprintf    = require('sprintf-js').sprintf,
-      Getopt     = require('node-getopt'),
-      version    = '20210323-0857',
-      getopt     = new Getopt(common.commonOptions.concat([
+const apigeejs = require('apigee-edge-js'),
+      common   = apigeejs.utility,
+      apigee   = apigeejs.apigee,
+      sprintf  = require('sprintf-js').sprintf,
+      Getopt   = require('node-getopt'),
+      version  = '20210323-0857',
+      getopt   = new Getopt(common.commonOptions.concat([
         ['R' , 'regexp=ARG', 'Optional. List proxies with vhosts matching this regexp.'],
         ['P' , 'proxyregexp=ARG', 'Optional. consider only proxies with names matching this regexp.']
       ])).bindHelp();
@@ -40,48 +40,14 @@ const apigeejs   = require('apigee-edge-js'),
 var gVhostRegexp;
 
 // ========================================================
+let opt = getopt.parse(process.argv.slice(2));
+if (opt.options.verbose) {
+  console.log(
+    `Apigee vhost-for-proxy query tool, version: ${version}\n` +
+      `Node.js ${process.version}\n`);
 
-console.log(
-  `Apigee vhost-for-proxy query tool, version: ${version}\n` +
-    `Node.js ${process.version}\n`);
-
-common.logWrite('start');
-var opt = getopt.parse(process.argv.slice(2));
-
-// function handleError(e) {
-//     if (e) {
-//       process.exit(1);
-//     }
-// }
-//
-// function getVhostForProxyEndpoint(org, proxy, revision) {
-//   return function(endpoint, cb) {
-//     org.proxies.getEndpoint({apiproxy:proxy, revision:revision, endpoint:endpoint},
-//                             (e, result) => cb(e, { name:endpoint, virtualHosts : result.connection.virtualHost}) );
-//   };
-// }
-//
-// function checkDeployedRevisionOfProxy(org, proxyName){
-//   return function(revEnvironment, cb) {
-//     if ( ! revEnvironment.environments || revEnvironment.environments.length == 0) {
-//       cb(null, []);
-//     }
-//     org.proxies.getProxyEndpoints({apiproxy:proxyName, revision: revEnvironment.revision}, (e, result) => {
-//       if (e) {
-//         console.warn(`unable to retrieve deployed revision ${proxyName}:${revEnvironment.revision}`);
-//         return cb(null, []);
-//       }
-//
-//       async.mapSeries(result, getVhostForProxyEndpoint(org, proxyName, revEnvironment.revision), (e, endpoints) => {
-//         if (opt.options.regexp) {
-//           endpoints = endpoints.filter( endpt =>
-//                                         endpt.virtualHosts.filter( item => gVhostRegexp.test(item) ).length>0 );
-//         }
-//         return cb(e, (endpoints.length>0)? {name: revEnvironment.revision, environments: revEnvironment.environments, endpoints} : null);
-//       });
-//     });
-//   };
-// }
+  common.logWrite('start');
+}
 
 function latestDeployment(proxyDeployment) {
   let item = { proxyname : proxyDeployment.name, deployments: [] };
@@ -99,13 +65,12 @@ function latestDeployment(proxyDeployment) {
   return item;
 }
 
-
-
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
 if (opt.options.regexp) {
   gVhostRegexp = new RegExp(opt.options.regexp);
 }
+
 apigee
   .connect(common.optToOptions(opt))
   .then( org =>

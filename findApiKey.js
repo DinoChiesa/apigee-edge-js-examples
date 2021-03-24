@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------
 // find the developer and app name for an API key from an Edge org.
 //
-// Copyright 2017-2019 Google LLC.
+// Copyright 2017-2021 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,35 +18,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2019-February-11 13:02:33>
+// last saved: <2021-March-23 17:20:44>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
-      Getopt     = require('node-getopt'),
-      version    = '20190211-1302',
-      getopt     = new Getopt(common.commonOptions.concat([
+const apigeejs = require('apigee-edge-js'),
+      common   = apigeejs.utility,
+      apigee   = apigeejs.apigee,
+      Getopt   = require('node-getopt'),
+      version  = '20210323-1718',
+      util     = require('util'),
+      getopt   = new Getopt(common.commonOptions.concat([
         ['k' , 'key=ARG', 'required. the key to find.']
       ])).bindHelp();
 
-function handleError(e) {
-    if (e) {
-      console.log(e);
-      console.log(e.stack);
-      process.exit(1);
-    }
-}
-
 // ========================================================
-
-console.log(
-  'Edge API key finder, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
-
-common.logWrite('start');
-
 // process.argv array starts with 'node' and 'scriptname.js'
-var opt = getopt.parse(process.argv.slice(2));
+let opt = getopt.parse(process.argv.slice(2));
+
+if (opt.options.verbose) {
+  console.log(
+    `Apigee API key finder, version: ${version}\n` +
+      `Node.js ${process.version}\n`);
+
+  common.logWrite('start');
+}
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
@@ -56,22 +50,23 @@ if ( !opt.options.key ) {
   process.exit(1);
 }
 
-apigeeEdge.connect(common.optToOptions(opt), function(e, org) {
-  handleError(e);
-  org.appcredentials.find({key:opt.options.key}, function(e, found) {
-    handleError(e);
-    if (found) {
-      common.logWrite(JSON.stringify(found, null, 2));
-      // common.logWrite('key: ' + found.key);
-      // common.logWrite('app: ' + found.appName + ' ' + found.appId);
-      // common.logWrite('dev: ' + found.developerId + ' ' +
-      //                 found.developer.firstName + ' ' +
-      //                 found.developer.lastName + ' ' +
-      //                 found.developer.userName + ' ' +
-      //                 found.developer.email);
-    }
-    else {
-      common.logWrite('that key was not found.');
-    }
-  });
-});
+apigee
+  .connect(common.optToOptions(opt))
+  .then( org =>
+         org.appcredentials.find({key:opt.options.key})
+         .then( found => {
+           if (found) {
+             common.logWrite(JSON.stringify(found, null, 2));
+             // common.logWrite('key: ' + found.key);
+             // common.logWrite('app: ' + found.appName + ' ' + found.appId);
+             // common.logWrite('dev: ' + found.developerId + ' ' +
+             //                 found.developer.firstName + ' ' +
+             //                 found.developer.lastName + ' ' +
+             //                 found.developer.userName + ' ' +
+             //                 found.developer.email);
+           }
+           else {
+             common.logWrite('that key was not found.');
+           }
+         }))
+  .catch( e => console.error('error: ' + util.format(e) ));

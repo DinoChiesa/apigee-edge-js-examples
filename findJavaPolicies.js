@@ -21,7 +21,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 11:08:54>
+// last saved: <2021-March-23 18:00:01>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -33,7 +33,7 @@ const apigeejs = require('apigee-edge-js'),
         ['J' , 'jar=ARG', 'Optional. JAR name to find. Default: search for all JavaCallout policies.'],
         ['R' , 'regexp', 'Optional. Treat the -J option as a regexp. Default: perform string match.'],
         ['E' , 'proxyregexp=ARG', 'Optional. check only for proxies that match this regexp.'],
-        ['L' , 'latestrevisionnumber', 'Optional. only look in the latest revision number for each proxy.']
+        ['' , 'latestrevision', 'Optional. only look in the latest revision number for each proxy.']
       ])).bindHelp();
 
 function isKeeper(opt) {
@@ -73,18 +73,20 @@ org.proxies.getPoliciesForRevision({name, revision})
 
 
 // ========================================================
-
-console.log(
-  `Apigee JavaCallout/JAR check tool, version: ${version}\n` +
-    `Node.js ${process.version}\n`);
-
-common.logWrite('start');
-
 // process.argv array starts with 'node' and 'scriptname.js'
 var opt = getopt.parse(process.argv.slice(2));
 
+if (opt.options.verbose) {
+  console.log(
+    `Apigee JavaCallout/JAR check tool, version: ${version}\n` +
+      `Node.js ${process.version}\n`);
+
+  common.logWrite('start');
+}
+
 common.verifyCommonRequiredParameters(opt.options, getopt);
-apigee.connect(common.optToOptions(opt))
+apigee
+  .connect(common.optToOptions(opt))
   .then( org =>
           org.proxies.get({})
           .then(proxies => {
@@ -92,7 +94,7 @@ apigee.connect(common.optToOptions(opt))
               promise .then( accumulator =>
                              org.proxies.get({ name: proxyname })
                              .then( ({revision}) => {
-                               if (opt.options.latestrevisionnumber) {
+                               if (opt.options.latestrevision) {
                                  revision = [revision.pop()];
                                }
                                return [ ...accumulator, {proxyname, revision} ];
@@ -110,19 +112,18 @@ apigee.connect(common.optToOptions(opt))
                 common.logWrite('checking...' + JSON.stringify(proxiesAndRevisions));
                 let getChecker = opt.options.jar ? checkRevisionForJar : checkRevisionForJava;
 
-                // a function that returns a revision reducer for the named proxy
-                function makeRevisionReducer(proxyName) {
+                let fn2 = (proxyName) => {
                   let check = getChecker(org, proxyName);
-                  return (promise, revision) =>
-                    promise.then( accumulator =>
-                                  check(revision)
-                                  .then( policies => [...accumulator, {revision, policies}] ));
-                }
+                  return (p, revision) =>
+                    p.then( accumulator =>
+                            check(revision)
+                            .then( policies => [...accumulator, {revision, policies}] ));
+                    };
 
-                let proxyReducer = (promise, nameAndRevisions) =>
-                  promise.then( accumulator =>
-                                 nameAndRevisions.revision.reduce(makeRevisionReducer(nameAndRevisions.proxyname), Promise.resolve([]))
-                                 .then( a => [...accumulator, {proxyname: nameAndRevisions.proxyname, found:a}]) );
+                let fn1 = (p, nameAndRevisions) =>
+                  p.then( acc =>
+                                 nameAndRevisions.revision.reduce(fn2(nameAndRevisions.proxyname), Promise.resolve([]))
+                                 .then( a => [...acc, {proxyname: nameAndRevisions.proxyname, found:a}]) );
 
                 return proxiesAndRevisions.reduce(proxyReducer, Promise.resolve([]));
               });
