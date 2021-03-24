@@ -21,7 +21,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 12:03:12>
+// last saved: <2021-March-24 14:10:33>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -33,7 +33,7 @@ const apigeejs = require('apigee-edge-js'),
       getopt   = new Getopt(common.commonOptions.concat([
         ['F' , 'sharedflow=ARG', 'Optional. find only FlowCallouts referencing a specific Sharedflow.'],
         ['L' , 'list', 'Optional. don\'t find. just list the SharedFlows in the org.'],
-        ['R' , 'latestrevisionnumber', 'Optional. only look in the latest revision number for each proxy.']
+        ['' , 'latestrevision', 'Optional. only look in the latest revision number for each proxy.']
       ])).bindHelp();
 
 // ========================================================
@@ -94,7 +94,7 @@ apigee.connect(common.optToOptions(opt))
         p.then( acc =>
                 org.proxies.get({ name })
                 .then( async result => {
-                  if (opt.options.latestrevisionnumber) {
+                  if (opt.options.latestrevision) {
                     result.revision.sort();
                     result.revision = [result.revision.pop()];
                   }
