@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 08:51:17>
+// last saved: <2021-March-30 12:16:55>
 
 const apigeejs   = require('apigee-edge-js'),
       common     = apigeejs.utility,
@@ -43,25 +43,26 @@ common.verifyCommonRequiredParameters(opt.options, getopt);
 // the state of any existing (cached) access_token and refresh_token.
 apigee.connect(common.optToOptions(opt))
   .then( org =>
-      org.conn.getExistingToken()
-      .then( existingToken => {
-        console.log('\n' + existingToken.access_token);
-        if (opt.options.verbose) {
-          let jwt = existingToken.access_token,
-              jwtparts = jwt.split(new RegExp('\\.')),
-              payload = Buffer.from(jwtparts[1], 'base64').toString('utf-8');
-          try {
-            let claims = JSON.parse(payload);
-            console.log( '\nissuer   : ' + claims.iss);
-            console.log( 'user     : ' + claims.user_name);
-            console.log( 'issued at: ' + (new Date(claims.iat * 1000)).toISOString());
-            console.log( 'expires  : ' + (new Date(claims.exp * 1000)).toISOString());
-            console.log( 'now      : ' + (new Date()).toISOString());
-            console.log( 'client_id: ' + claims.client_id);
-          }
-          catch (e) {
-            // gulp
-          }
-        }
-      }))
+         org.conn
+         .getExistingToken()
+         .then( existingToken => {
+           console.log('\n' + existingToken.access_token);
+           if (opt.options.verbose) {
+             let jwt = existingToken.access_token,
+                 jwtparts = jwt.split(new RegExp('\\.')),
+                 payload = Buffer.from(jwtparts[1], 'base64').toString('utf-8');
+             try {
+               let claims = JSON.parse(payload);
+               console.log( '\nissuer   : ' + claims.iss);
+               console.log( 'user     : ' + claims.user_name);
+               console.log( 'issued at: ' + (new Date(claims.iat * 1000)).toISOString());
+               console.log( 'expires  : ' + (new Date(claims.exp * 1000)).toISOString());
+               console.log( 'now      : ' + (new Date()).toISOString());
+               console.log( 'client_id: ' + claims.client_id);
+             }
+             catch (e) {
+               // gulp
+             }
+           }
+         }))
   .catch( e => console.error('error: ' + e) );
