@@ -19,16 +19,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 11:13:49>
+// last saved: <2021-April-21 16:05:51>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
       apigee   = apigeejs.apigee,
       sprintf  = require('sprintf-js').sprintf,
       Getopt   = require('node-getopt'),
-      merge    = require('merge'),
+      pLimit   = require('p-limit'),
       util     = require('util'),
-      version  = '20210323-1109',
+      version  = '20210421-1603',
       getopt   = new Getopt(common.commonOptions.concat([
         ['R' , 'regexp=ARG', 'Optional. Cull only proxies with names matching this regexp.'],
         ['K' , 'numToKeep=ARG', 'Required. Max number of revisions of each proxy to retain.'],
@@ -57,21 +57,24 @@ function examineRevisions(collection, name, revisions) {
       let revisionsToExamine = revisions.slice(0, revisions.length - opt.options.numToKeep);
       revisionsToExamine.reverse();
 
-      const reducer = (p, revision) =>
-        p.then( a => {
-          const options = { name, revision };
-          return collection.getDeployments(options)
-            .then( deployments => {
-              if (opt.options.verbose) {
-                common.logWrite('deployments (%s r%s): %s', name, revision, JSON.stringify(deployments));
-              }
-              return (! deployments.environment || deployments.environment.length === 0) ?
-                collection.del(options).then ( _ => [ ...a, revision ] ) : a;
-            });
-        });
+      const limit = pLimit(4);
 
-      return revisionsToExamine.reduce(reducer, Promise.resolve([]))
+      const mapper =
+        revision => limit( _ => {
+        const options = { name, revision };
+        return collection.getDeployments(options)
+          .then( deployments => {
+            if (opt.options.verbose) {
+              common.logWrite('deployments (%s r%s): %s', name, revision, JSON.stringify(deployments));
+            }
+            return (! deployments.environment || deployments.environment.length === 0) ?
+              collection.del(options).then ( _ => revision ) : null;
+          });
+      });
+
+      return Promise.all(revisionsToExamine.map(mapper))
         .then ( revisions => {
+          revisions = revisions.filter( r => r);
           if (opt.options.verbose) {
             common.logWrite("deleted %s: %s", name, JSON.stringify(revisions));
           }
