@@ -26,7 +26,7 @@ To get started, you must have a recent version of node and npm installed. And yo
 
 3. run the tool you wish to try out:
    ```
-   node findJavaPolicies.js ...
+   node ./findJavaPolicies.js ...
    ```
 
 
