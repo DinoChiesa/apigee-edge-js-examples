@@ -1,6 +1,6 @@
 {
   "name": "apigee-js-examples",
-  "version": "0.4.24",
+  "version": "0.4.25",
   "description": "Examples for using the Apigee nodeJS library",
   "main": "importAndDeploy.js",
   "scripts": {
