@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 08:52:22>
+// last saved: <2021-July-02 17:00:45>
 
 const fs         = require('fs'),
       apigeejs   = require('apigee-edge-js'),
@@ -48,7 +48,7 @@ function loadFileIntoMap(org) {
         key: opt.options.entryname,
         value: content
       };
-  common.logWrite('storing new key \'%s\'', opt.options.entryname);
+  common.logWrite('storing new value for key \'%s\'', opt.options.entryname);
   return org.kvms.put(options)
     .then( _ => common.logWrite('ok. the key was loaded successfully.'));
 }
