@@ -245,9 +245,18 @@ request({method:'get', url: 'https://mkcert.org/labels/'})
                  .then( result => {
                    console.log('no error...');
                  } )
-                 .catch( e =>
-                          (e.result && e.result.code == "messaging.config.beans.KeyStoreNotFound") ?
-                         org.keystores.create(trustStoreOptions) : { } )
+                 .catch( e => {
+                   let isNotFound = e =>
+                   (e.result && e.result.code == "messaging.config.beans.KeyStoreNotFound")  ||
+                     (e.result && e.result.error && e.result.error.code == "404");
+
+                   let util = require('util');
+                   console.log(util.format(e.result));
+                   return isNotFound(e) ? org.keystores.create(trustStoreOptions) : { };
+                 })
+                 // .catch( e =>
+                 //          (e.result && e.result.code == "messaging.config.beans.KeyStoreNotFound") ?
+                 //         org.keystores.create(trustStoreOptions) : { } )
 
               .then( resp => {
                 common.logWrite('uploading %d certificates...', certs.length);
