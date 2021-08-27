@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-April-21 16:05:51>
+// last saved: <2021-July-02 16:24:35>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -57,6 +57,7 @@ function examineRevisions(collection, name, revisions) {
       let revisionsToExamine = revisions.slice(0, revisions.length - opt.options.numToKeep);
       revisionsToExamine.reverse();
 
+      // limit the number of concurrent requests
       const limit = pLimit(4);
 
       const mapper =
