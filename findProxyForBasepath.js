@@ -18,18 +18,21 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2021-March-23 18:17:35>
+// last saved: <2021-August-27 11:42:19>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
       apigee   = apigeejs.apigee,
       util     = require('util'),
       sprintf  = require('sprintf-js').sprintf,
+      AdmZip   = require('adm-zip'),
+      DOM      = require('@xmldom/xmldom').DOMParser,
+      xpath    = require('xpath'),
       Getopt   = require('node-getopt'),
-      version  = '20210323-1810',
+      version  = '20210827-1142',
       getopt   = new Getopt(common.commonOptions.concat([
-        ['B' , 'basepath=ARG', 'Required. the basepath to find.'],
-        ['R' , 'regexp', 'Optional. Treat the -B option as a regexp. Default: perform string match.'],
+        ['B', 'basepath=ARG', 'Required. the basepath to find.'],
+        ['R', 'regexp', 'Optional. Treat the -B option as a regexp. Default: perform string match.'],
         ['' , 'proxypattern=ARG', 'Optional. a regular expression. Look only in proxies that match this regexp.'],
         ['' , 'latestrevision', 'Optional. only look in the latest revision number for each proxy.']
       ])).bindHelp();
@@ -42,37 +45,38 @@ function isKeeper(opt) {
   return () => true;
 }
 
-const revisionChecker = (org, name) =>
+const revisionFilterer = (org, name) =>
   revision =>
-    org.proxies.getEndpoints({ name, revision })
-    .then( endpoints => {
-      let reducer = (p, endpoint) =>
-      p.then( accumulator =>
-              org.proxies
-              .getEndpoint({ name, revision, endpoint })
-              .then( ep => {
-                let isMatch = (opt.options.regexp) ?
-                  opt.options.regexp.test(ep.connection.basePath) :
-                  (ep.connection.basePath == opt.options.basepath);
-                return isMatch ?
-                  [...accumulator,
-                   {
-                     name: ep.name,
-                     basePath: ep.connection.basePath,
-                     adminPath: sprintf('apis/%s/revisions/%s/endpoints/%s', name, revision, ep.name)
-                   }
-                  ]
-                : accumulator;
-              }));
-      return endpoints.reduce(reducer, Promise.resolve([]));
-    });
+  org.proxies.export({ name, revision })
+  .then( result => {
+    let zip = new AdmZip(result.buffer),
+        re1 = new RegExp('^apiproxy/proxies/[^/]+.xml$');
+    return zip
+      .getEntries()
+      .filter( entry => entry.entryName.match(re1))
+      .map( entry => {
+        let data = entry.getData().toString('utf8'),
+            doc = new DOM().parseFromString(data),
+            endpointName = xpath.select('/ProxyEndpoint/@name', doc)[0].value,
+            basePath = xpath.select('/ProxyEndpoint/HTTPProxyConnection/BasePath', doc)[0].firstChild.data;
+        return {
+          name: endpointName,
+          basePath,
+          adminPath: sprintf('apis/%s/revisions/%s/endpoints/%s', name, revision, endpointName)
+        };
+      })
+      .filter( entry =>
+               (opt.options.regexp) ?
+               opt.options.regexp.test(entry.basePath) :
+               (entry.basePath == opt.options.basepath));
+  });
 
-const revisionReducer = check =>
+const revisionReducer = fn =>
  (p, revision) =>
     p.then( accumulator =>
-            check(revision)
-            .then( endpoint =>
-                   endpoint.length ? [...accumulator, { revision, endpoint }] : accumulator ));
+            fn(revision)
+            .then( endpoints =>
+                   endpoints.length ? [...accumulator, { revision, endpoints }] : accumulator ));
 
 
 const toLatestRevision = org =>
@@ -116,6 +120,10 @@ apigee
   .then(org =>
     org.proxies.get()
       .then( apiproxies => {
+          // for gaambo
+          if (Array.isArray(apiproxies.proxies)) {
+            apiproxies = apiproxies.proxies.map(p => p.name);
+          }
         if (opt.options.verbose) {
           common.logWrite('total count of API proxies for that org: %d', apiproxies.length);
         }
@@ -127,9 +135,9 @@ apigee
       .then( itemsAndRevisions => {
         let itemReducer = (p, nameAndRevisions) =>
           p.then( accumulator => {
-            let check = revisionChecker(org, nameAndRevisions.name);
+            let filter = revisionFilterer(org, nameAndRevisions.name);
             return nameAndRevisions.revision
-              .reduce(revisionReducer(check), Promise.resolve([]))
+              .reduce(revisionReducer(filter), Promise.resolve([]))
               .then( a => a.length ? [...accumulator, {proxyname: nameAndRevisions.name, found:a}] : accumulator);
         });
 

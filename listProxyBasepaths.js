@@ -18,7 +18,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2021-August-27 10:32:36>
+// last saved: <2021-August-27 11:29:03>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -26,8 +26,8 @@ const apigeejs = require('apigee-edge-js'),
       util     = require('util'),
       sprintf  = require('sprintf-js').sprintf,
       AdmZip   = require('adm-zip'),
-      DOM      = require("@xmldom/xmldom").DOMParser,
-      xpath    = require("xpath"),
+      DOM      = require('@xmldom/xmldom').DOMParser,
+      xpath    = require('xpath'),
       Getopt   = require('node-getopt'),
       version  = '20210827-0757',
       getopt   = new Getopt(common.commonOptions.concat([
