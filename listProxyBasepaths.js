@@ -18,7 +18,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2021-August-27 11:29:03>
+// last saved: <2021-September-01 12:54:55>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -29,7 +29,7 @@ const apigeejs = require('apigee-edge-js'),
       DOM      = require('@xmldom/xmldom').DOMParser,
       xpath    = require('xpath'),
       Getopt   = require('node-getopt'),
-      version  = '20210827-0757',
+      version  = '20210901-1254',
       getopt   = new Getopt(common.commonOptions.concat([
         ['' , 'proxypattern=ARG', 'Optional. a regular expression. Look only in proxies that match this regexp.'],
         ['' , 'latestrevision', 'Optional. only look in the latest revision number for each proxy.']
@@ -58,10 +58,13 @@ const revisionMapper = (org, name) =>
         let data = entry.getData().toString('utf8'),
             doc = new DOM().parseFromString(data),
             endpointName = xpath.select('/ProxyEndpoint/@name', doc)[0].value,
-            basePath = xpath.select('/ProxyEndpoint/HTTPProxyConnection/BasePath', doc)[0].firstChild.data;
+            nodeset = xpath.select('/ProxyEndpoint/HTTPProxyConnection/BasePath', doc),
+            theNode = nodeset && nodeset[0],
+            firstChild = theNode && theNode.firstChild,
+            basePath = firstChild && firstChild.data;
         return {
           name: endpointName,
-          basePath,
+          basePath: basePath || 'unknown',
           adminPath: sprintf('apis/%s/revisions/%s/endpoints/%s', name, revision, endpointName)
         };
       });
