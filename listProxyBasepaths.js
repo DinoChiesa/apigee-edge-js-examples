@@ -18,7 +18,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2021-September-01 12:54:55>
+// last saved: <2021-September-07 13:08:30>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -29,8 +29,9 @@ const apigeejs = require('apigee-edge-js'),
       DOM      = require('@xmldom/xmldom').DOMParser,
       xpath    = require('xpath'),
       Getopt   = require('node-getopt'),
-      version  = '20210901-1254',
+      version  = '20210907-1239',
       getopt   = new Getopt(common.commonOptions.concat([
+        ['' , 'env=ARG', 'Optional. an environment. Look only in proxies that are deployed to this environment.'],
         ['' , 'proxypattern=ARG', 'Optional. a regular expression. Look only in proxies that match this regexp.'],
         ['' , 'latestrevision', 'Optional. only look in the latest revision number for each proxy.']
       ])).bindHelp();
@@ -79,14 +80,39 @@ const revisionReducer = fn =>
 
 const toRevisions = org =>
  (promise, name) =>
-    promise .then( accumulator =>
-                   org.proxies.get({ name })
-                   .then( ({revision}) => {
-                     if (opt.options.latestrevision) {
-                       revision = [revision.pop()];
-                     }
-                     return [ ...accumulator, {name, revision} ];
-                   }));
+  promise .then( accumulator => {
+    if (opt.options.env) {
+      return org.proxies.getDeployments({ name, environment: opt.options.env})
+        .then( response => {
+          if (response.deployments) {
+            // GAAMBO
+            let deployments = response.deployments.map( d => ({name, revision:[d.revision]}));
+            return [...accumulator, ...deployments];
+          }
+          if (response.revision) {
+            // Admin API
+            let deployments = response.revision.map( r => ({name, revision:[r.name]}));
+            //console.log('deployments: ' + JSON.stringify(deployments, null, 2));
+            return [...accumulator, ...deployments];
+          }
+          return accumulator;
+        })
+        .catch( e => {
+          if (e.code == "distribution.ApplicationNotDeployed") {
+            return accumulator;
+          }
+          throw e;
+        });
+    }
+
+    return org.proxies.get({ name })
+      .then( ({revision}) => {
+        if (opt.options.latestrevision) {
+          revision = [revision.pop()];
+        }
+        return [ ...accumulator, {name, revision} ];
+      });
+});
 
 
 // ========================================================
@@ -121,7 +147,8 @@ apigee
           .reduce( toRevisions(org), Promise.resolve([]));
         })
         .then( candidates => {
-        let r = (p, nameAndRevisions) =>
+          //console.log('candidates: ' + JSON.stringify(candidates, null, 2));
+          let r = (p, nameAndRevisions) =>
           p.then( accumulator => {
             let mapper = revisionMapper(org, nameAndRevisions.name);
             return nameAndRevisions.revision
