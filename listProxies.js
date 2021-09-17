@@ -18,15 +18,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 08:56:02>
+// last saved: <2021-September-17 08:13:38>
 
 const apigeejs   = require('apigee-edge-js'),
       util       = require('util'),
       common     = apigeejs.utility,
-      apigee     = edgejs.apigee,
+      apigee     = apigeejs.apigee,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20210323-0855',
+      version    = '20210917-0813',
       getopt     = new Getopt(common.commonOptions.concat([
           ['E' , 'elaborate', 'Optional. inquire and show the deployments of each proxy, too.'],
       ])).bindHelp();
@@ -44,10 +44,15 @@ var opt = getopt.parse(process.argv.slice(2));
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
 apigee.connect(common.optToOptions(opt))
-.then(org =>
+  .then(org =>
     org.proxies.get({})
-      .then(proxies => (common.logWrite(sprintf('found %d proxies', proxies.length)), proxies))
-      .then(proxies =>
+        .then(resp => {
+          // GAAMBO
+          let proxies = (resp.proxies) ? resp.proxies.map(p => p.name) : resp;
+          common.logWrite(sprintf('found %d proxies', proxies.length));
+          return proxies;
+        })
+        .then(proxies =>
            (opt.options.elaborate) ?
                proxies
                   .reduce((promise, item) =>
