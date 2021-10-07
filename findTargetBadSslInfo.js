@@ -16,7 +16,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2021-October-07 13:08:39>
+// last saved: <2021-October-07 13:19:23>
 /* global process */
 
 const edgejs     = require('apigee-edge-js'),
@@ -24,7 +24,7 @@ const edgejs     = require('apigee-edge-js'),
       apigeeEdge = edgejs.edge,
       util       = require('util'),
       Getopt     = require('node-getopt'),
-      version    = '20211007-1240',
+      version    = '20211007-1319',
       targetType = {
         HTTP : 'httpConnection',
         NODE : 'scriptConnection',
@@ -160,8 +160,7 @@ apigeeEdge.connect(common.optToOptions(opt))
              .reduce(reducer, Promise.resolve([]))
              .then( a => {
                const r = {
-                       report: 'Proxies with target type',
-                       targetType : opt.options.targettype,
+                       report: 'Proxies with bad SSLInfo',
                        search: (opt.options.latest)? 'latest revision': 'all revisions',
                        org: opt.options.org,
                        now: (new Date()).toISOString(),
