@@ -1,3 +1,5 @@
+#! /usr/local/bin/node
+/*jslint node:true */
 // findApiProductForProxy.js
 // ------------------------------------------------------------------
 //
@@ -19,7 +21,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2021-March-23 18:08:52>
+// last saved: <2021-September-17 08:45:58>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -56,8 +58,51 @@ apigee
   .then(org =>
         org.products.get({expand:true})
         .then(result => {
+          console.log('RESULT: ' + JSON.stringify(result, null, 2));
           let apiproducts = result.apiProduct;
           common.logWrite('total count of API products for that org: %d', apiproducts.length);
+
+          // For the old config model, the product object has a "proxies" child.
+          // For the new model, the product object has children "operationGroup"
+          // and "graphqlOperationGroup".
+          //
+          // ex:
+          // "operationGroup": {
+          //    "operationConfigs": [
+          //      {
+          //        "apiSource": "oauth-test",
+          //        "operations": [
+          //          {
+          //            "resource": "/t2",
+          //            "methods": [
+          //              "GET"
+          //            ]
+          //          }
+          //        ],
+          //        "quota": {}
+          //      },
+          //      {
+          //        "apiSource": "oauth-test",
+          //        "operations": [
+          //          {
+          //            "resource": "/t1",
+          //            "methods": [
+          //              "GET"
+          //            ]
+          //          }
+          //        ],
+          //        "quota": {}
+          //      }
+          //    ],
+          //    "operationConfigType": "proxy"
+          //  },
+          //  "graphqlOperationGroup": {
+          //    "operationConfigType": "proxy"
+          //  }
+          //
+          // Need to inspect that to produce results.
+          //
+
           let filtered = apiproducts.filter( product => (product.proxies.indexOf(opt.options.proxy) >= 0));
 
           if (filtered && filtered.length) {
