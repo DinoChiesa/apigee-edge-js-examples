@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-July-02 16:24:35>
+// last saved: <2022-January-24 13:54:06>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -106,12 +106,19 @@ apigee.connect(common.optToOptions(opt))
           const re1 = new RegExp(opt.options.regexp);
           results = results.filter( item => re1.test(item) );
         }
+        if (results) {
+          // convert for GAAMBO
+          if (results.proxies && results.proxies.length) {
+            results = results.proxies.map(r => r.name);
+          }
+        }
         if ( !results || results.length == 0) {
           common.logWrite('No %s%s', (opt.options.regexp)?"matching ":"", collectionName);
           return Promise.resolve(true);
         }
 
         if (opt.options.verbose) {
+          console.log(JSON.stringify(results, null, 2));
           common.logWrite('found %d %s%s', results.length, (opt.options.regexp)?"matching ":"", collectionName);
         }
 
