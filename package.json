@@ -1,10 +1,9 @@
 {
   "name": "apigee-js-examples",
-  "version": "0.4.25",
+  "version": "0.4.31",
   "description": "Examples for using the Apigee nodeJS library",
   "main": "importAndDeploy.js",
   "scripts": {
-    "preinstall": "([ ! -f package-lock.json ] && npm install --package-lock-only --ignore-scripts --no-audit); npx npm-force-resolutions",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -24,18 +23,20 @@
     "@peculiar/x509": "^1.2.2",
     "@xmldom/xmldom": "^0.7.4",
     "adm-zip": "^0.4.11",
-    "apigee-edge-js": "^0.4.28",
+    "apigee-edge-js": "^0.4.31",
+    "debug": "^4.3.3",
     "mkdirp": "1.0.3",
     "netrc": "0.1.3",
-    "node-getopt": "0.3.2",
+    "node-getopt": "git://github.com/tuxpoldo/node-getopt.git#05e498731c14b648fa332ca78d3a301c5e4be440",
     "node-rsa": "0.4.2",
     "p-limit": "^3.1.0",
     "readline-sync": "1.4.9",
+    "request-debug": "^0.2.0",
     "sprintf-js": "1.1.2",
     "uuid": "^7.0.3",
     "xpath": "^0.0.32"
   },
-  "resolutions" : {
+  "overrides": {
     "lodash": "^4.17.21"
   },
   "engines": {
