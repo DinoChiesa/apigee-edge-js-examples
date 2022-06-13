@@ -6,9 +6,10 @@
 // In an Apigee organization, find all policies in all proxies that reference a
 // KVM, and maybe a particular KVM.  This uses a brute-force search implemented
 // on the client side (within this script), so it can take a while to run on an
-// org that has many proxies, or many revisions.
+// org that has many proxies, or many revisions. This will work only for Apigee
+// Edge, won't work for X / hybrid.
 //
-// Copyright 2017-2021 Google LLC.
+// Copyright 2017-2022 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 18:04:46>
+// last saved: <2022-June-13 13:17:09>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -30,7 +31,7 @@ const apigeejs = require('apigee-edge-js'),
       sprintf  = require('sprintf-js').sprintf,
       util     = require('util'),
       Getopt   = require('node-getopt'),
-      version  = '20210323-1758',
+      version  = '20220613-1316',
       getopt   = new Getopt(common.commonOptions.concat([
         ['M' , 'kvm=ARG', 'Optional. KVM name to find.'],
         ['S' , 'scope=ARG', 'Optional. Scope to match. Should be one of: (organization, environment, apiproxy)'],
@@ -63,13 +64,18 @@ if (opt.options.verbose) {
 }
 
 const policyUrl = (proxyName, revision, policyName) =>
-sprintf("/v1/o/%s/apis/%s/revisions/%s/policies/%s",
+sprintf("/v1/organizations/%s/apis/%s/revisions/%s/policies/%s",
         opt.options.org, proxyName, revision, policyName);
 
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
+let opts = common.optToOptions(opt);
+if (opts.apigeex) {
+  throw new Error('this will work for Apigee Edge, not X or hybrid');
+}
+
 apigee
-  .connect(common.optToOptions(opt))
+  .connect(opts)
   .then( org => {
 
     common.logWrite('connected');

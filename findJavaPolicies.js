@@ -4,10 +4,11 @@
 // ------------------------------------------------------------------
 // In Apigee Edge, find all policies in all proxies that reference a Java callout.
 // Or, alternatively, find proxies in an org that include a specific JAR as a resource.
+// This works only with Apigee Edge, not with X / hybrid.
 //
 // This tool does not examine environment-wide or organization-wide resources.
 //
-// Copyright 2017-2019 Google LLC.
+// Copyright 2017-2022 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +22,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 18:00:01>
+// last saved: <2022-June-13 13:17:31>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
