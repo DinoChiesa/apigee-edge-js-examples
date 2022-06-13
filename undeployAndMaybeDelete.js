@@ -2,9 +2,9 @@
 /*jslint node:true */
 // undeployAndMaybeDelete.js
 // ------------------------------------------------------------------
-// undeploy and maybe delete an Apigee Edge proxy that has a name with a specific prefix.
+// undeploy and maybe delete an Apigee proxy that has a name with a specific prefix.
 //
-// Copyright 2017-2021 Google LLC.
+// Copyright 2017-2022 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 08:51:26>
+// last saved: <2022-June-13 13:14:46>
 /* jslint esversion:9 */
 
 const apigeejs   = require('apigee-edge-js'),
@@ -26,7 +26,7 @@ const apigeejs   = require('apigee-edge-js'),
       common     = apigeejs.utility,
       apigee     = apigeejs.apigee,
       Getopt     = require('node-getopt'),
-      version    = '20210323-0851',
+      version    = '20220613-1313',
       getopt     = new Getopt(common.commonOptions.concat([
         ['A' , 'all', 'optional. Undeploy (and optionally delete) all API Proxies.' ],
         ['P' , 'prefix=ARG', 'optional. Undeploy (and optionally delete) API Proxies with names starting with this prefix.' ],
@@ -93,8 +93,8 @@ function revReducer(options, org, envs, name) {
 }
 
 console.log(
-  'Apigee Edge Proxy Undeploy + Delete tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee Proxy Undeploy + Delete tool, version: ${version}\n` +
+    `Node.js ${process.version}\n`);
 
 common.logWrite('start');
 
