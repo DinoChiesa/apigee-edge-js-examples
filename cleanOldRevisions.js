@@ -2,10 +2,10 @@
 /* jshint node:true, esversion:9, strict:implied */
 // cleanOldRevisions.js
 // ------------------------------------------------------------------
-// In Apigee Edge, for all proxies or sharedflows in an org, remove all
+// In Apigee, for all proxies or sharedflows in an org, remove all
 // but the latest N revisions. (Never remove a deployed revision).
 //
-// Copyright 2017-2020 Google LLC.
+// Copyright 2017-2022 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-January-24 13:54:06>
+// last saved: <2022-June-23 15:27:31>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -28,7 +28,7 @@ const apigeejs = require('apigee-edge-js'),
       Getopt   = require('node-getopt'),
       pLimit   = require('p-limit'),
       util     = require('util'),
-      version  = '20210421-1603',
+      version  = '20220623-1527',
       getopt   = new Getopt(common.commonOptions.concat([
         ['R' , 'regexp=ARG', 'Optional. Cull only proxies with names matching this regexp.'],
         ['K' , 'numToKeep=ARG', 'Required. Max number of revisions of each proxy to retain.'],
@@ -102,15 +102,15 @@ apigee.connect(common.optToOptions(opt))
 
     return collection.get(readOptions)
       .then( results => {
-        if (opt.options.regexp) {
-          const re1 = new RegExp(opt.options.regexp);
-          results = results.filter( item => re1.test(item) );
-        }
         if (results) {
           // convert for GAAMBO
           if (results.proxies && results.proxies.length) {
             results = results.proxies.map(r => r.name);
           }
+        }
+        if (opt.options.regexp) {
+          const re1 = new RegExp(opt.options.regexp);
+          results = results.filter( item => re1.test(item) );
         }
         if ( !results || results.length == 0) {
           common.logWrite('No %s%s', (opt.options.regexp)?"matching ":"", collectionName);
