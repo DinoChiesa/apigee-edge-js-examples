@@ -1,14 +1,18 @@
-# Example Tools for Apigee Edge
+# Example Tools for Apigee
 
 These are example tools implemented in nodejs/Javascript, that use the [apigee-edge-js](https://github.com/DinoChiesa/apigee-edge-js) library.
 
-They all can retrieve credentials from a .netrc file, or you can pass in user credentials interactively.
-Also, they use the OAuth authentication mechanism for Apigee Edge.
+While the name of the repo refers to "Apigee Edge" these tools and the
+underlying library work with Apigee Edge or X/hybrid.
+
+Relying on the capability of the underlying library, the tools can authenticate
+via OAuth bearer tokens to either api.enterprise.apigee.com (for Edge), or
+apigee.googleapis.com (for X/hybrid).
 
 ## Disclaimer
 
 These tools are not an official Google product, nor are they part of an official Google product, nor are they included under any Google support contract.
-Support is available on a best-effort basis via github or [community.apigee.com](https://community.apigee.com) .
+Support is available on a best-effort basis via github or [the Apigee community](https://www.googlecloudcommunity.com/gc/Apigee/bd-p/cloud-apigee) .
 
 # Getting Started
 
@@ -38,26 +42,40 @@ All of the scripts in this directory support some common options, where appropri
 ```
 Options:
   -M, --mgmtserver=ARG the base path, including optional port, of the Edge mgmt server. Defaults to https://api.enterprise.apigee.com .
-  -u, --username=ARG   org user with permissions to read Edge configuration.
-  -p, --password=ARG   password for the org user.
+  -u, --username ARG   org user with permissions to read Edge configuration.
+  -p, --password ARG   password for the org user.
   -n, --netrc          retrieve the username + password from the .netrc file. In lieu of -u/-p
   -o, --org=ARG        the Edge organization.
-  -Z, --ssoZone=ARG    specify the SSO zone to use when authenticating.
-  -C, --passcode=ARG   specify the passcode to use when authenticating.
+  -Z, --ssoZone ARG    specify the SSO zone to use when authenticating.
+  -C, --passcode ARG   specify the passcode to use when authenticating.
   -T, --notoken        do not try to obtain an oauth token.
+      --token ARG      use the specified token as a bearer token
+      --apigeex        connect to apigee.googleapis.com. (Default is api.enterprise.apigee.com)
   -v, --verbose
   -h, --help
 ```
 
-For example, to list developers for an organization, if you have a passcode, then you can do this:
+The options related to authentication, like netrc, passcode, ssoZone, username, and password - will work with Apigee Edge. They are not relevant to Apigee X.  To authenticate to Apigee X, get a token via the gcloud command  (something like `gcloud auth print-access-token`) , and specify it via the `--token` option. 
+
+# Some examples. 
+
+## List Developers
+To list developers for an Edge organization, if you have a token that you obtained via the `acurl` command,  you can do this:
+
+```
+ node ./listAndQueryDevelopers.js -v -o orgname --token $TOKEN
+```
+
+
+If you don't have a token, you can ask the tool to authenticate for you, to the Apigee SSO service, via a zone and a passcode. To do that, use this form of the command:
 
 ```
  node ./listAndQueryDevelopers.js -v -o orgname -Z zonename  -C passcodehere
 ```
 
-You do not need to pass a username if using a passcode to obtain a token.
+(You do not need to pass a username if using a passcode to obtain a token.)
 
-Also: the underlying apigee-edge-js library caches access tokens, so ... you will not need a passcode for each script invocation. Subsequent script invocations will use the cached token. Just pass the zonename and user:
+Also: the underlying apigee-edge-js library caches access tokens for Edge, so ... you will not need a passcode for each script invocation. Subsequent script invocations will use the cached token. Just pass the zonename and user:
 
 ```
  node ./listAndQueryDevelopers.js -v -u dchiesa@google.com -o orgname -Z zonename
@@ -66,7 +84,7 @@ Also: the underlying apigee-edge-js library caches access tokens, so ... you wil
 Be aware that when the refresh token expires, you will need a new passcode to get a new token.
 
 
-# Import a proxy
+## Import a proxy
 
 Import a proxy, using a bundle zip as the source. Derive the name for the proxy from the *.xml in the apiproxy directory:
 
@@ -87,7 +105,7 @@ Import, but override the name specified in the proxy XML file in the apiproxy di
 ```
 
 
-# Import and Deploy a proxy
+## Import and Deploy a proxy
 
 Deploy to one environment:
 ```
@@ -101,23 +119,31 @@ Deploy to multiple environments:
 ./importAndDeploy.js -n -v -o $ORG  -d ../bundles/protected-by-oauth -e test,prod
 ```
 
+Import and deploy in Apigee X:
 
-# Import and Deploy a sharedflow
+```
+TOKEN=$(gcloud auth print-access-token)
+./importAndDeploy.js  -v -o $ORG  -e test,prod --token $TOKEN --apigeex  -d ../bundles/protected-by-oauth
+```
+
+
+## Import and Deploy a sharedflow
+
 ```
 ./importAndDeploy.js -n -v -o $ORG  -d ../bundles/sharedflow-1 -e main -S
 ```
 
-# Undeploy all revisions of a proxy from all environments
+## Undeploy all revisions of a proxy from all environments
 ```
 ./undeployAndMaybeDelete.js -v -n -o $ORG -P jsonpath-extract
 ```
 
-# Undeploy all revisions of a proxy and delete it
+## Undeploy all revisions of a proxy and delete it
 ```
 ./undeployAndMaybeDelete.js -v -n -o $ORG -P jsonpath-extract -D
 ```
 
-# Create a product
+## Create a product
 
 ```
 PROXY=demo-protected-by-oauth
@@ -126,7 +152,7 @@ PRODUCTNAME=Demo-Product-1
 ```
 
 
-# Create a developer
+## Create a developer
 
 ```
 FIRST=Dino
@@ -135,21 +161,21 @@ EMAIL=dchiesa+2017@google.com
  ./createDeveloper.js -n -v -o $ORG -E $EMAIL -F $FIRST -L $LAST
 ```
 
-# Create a developer app
+## Create a developer app
 
 ```
 ./createDeveloperApp.js -n -v -o $ORG -N DemoApp1 -E dchiesa+2017@google.com -p Demo-Product-1
 ```
 
 
-# Delete a developer app
+## Delete a developer app
 
 ```
 ./deleteDeveloperApp.js -n -v -o $ORG -N DemoApp3 -E dchiesa+2017@google.com
 ```
 
 
-# Export a set of proxies with a name matching a RegExp pattern
+## Export a set of proxies with a name matching a RegExp pattern
 
 ```
 ./exportApi.js -n -v -o $ORG -P ^r.\*
@@ -162,7 +188,7 @@ If you  want to just see which proxies would be exported, you can use the -T opt
 ```
 
 
-# Export all proxies in an org
+## Export all proxies in an org
 
 This just uses a regex pattern that matches all names.
 
@@ -171,13 +197,12 @@ This just uses a regex pattern that matches all names.
 ```
 
 
-# Export a single named proxy
+## Export a single named proxy
 
 In lieu of the -P (pattern) option you can use -N (name) for a specific proxy.
 
-
 ```
-./exportApi.js -n -v -o $ORG -N runload
+./exportApi.js -n -v -o $ORG -N proxy1
 ```
 
 By defaut the script will export the latest revision of the proxy.
@@ -185,10 +210,10 @@ If you know  the revision you'd like to export, you can use the -R option to spe
 
 
 ```
-./exportApi.js -n -v -o $ORG -N runload -R 3
+./exportApi.js -n -v -o $ORG -N myproxy -R 3
 ```
 
-# Find all proxies that have a vhost with name matching "default"
+## Find all proxies that have a vhost with name matching "default"
 
 ```
 node ./findVhostsForDeployedProxies.js -n -v -o $ORG  -R default
@@ -196,35 +221,35 @@ node ./findVhostsForDeployedProxies.js -n -v -o $ORG  -R default
 ```
 
 
-# Revoke a developer app by key
+## Revoke a developer app by key
 
 ```
 node ./revokeOrApprove.js -n -v -o $ORG  -k dc79ee0e4b95b74adef42d63a5c6 -R
 
 ```
 
-# Revoke a developer app by developer email and app name
+## Revoke a developer app by developer email and app name
 
 ```
 node ./revokeOrApprove.js -n -v -o $ORG  -d developer@example.com -a appnamehere -R
 
 ```
 
-# Add (import) a credential to an existing developer app
+## Add (import) a credential to an existing developer app
 
 ```
 ./addAppCredential.js -v -n -o $ORG -A AppName-20180803 -E developerEmail@apigee.com -p ProductName -C Unique_Credential_Here_1983983XYZ123ABCDE
 ```
 
-# Load a PEM as a value into a KVM (maybe encrypted)
+## Load a PEM as a value into a KVM (maybe encrypted)
 
 ```
 ./loadPemIntoKvm.js -n -v -o $ORG -e ENVNAME -m KVM_MAP_NAME -F ./public.pem -N NAME_OF_VALUE
 ```
 
-# Resource Tool
+## Resource Tool
 
-## List
+### List Resources
 ```
 $ node ./resourceTool.js -v -n -o $ORG -A list -e test
 Edge API resourcefile tool, version: 20190306-0851
@@ -258,7 +283,8 @@ Node.js v10.15.1
 }
 ```
 
-## Get
+### Get Resources
+
 ```
 $ node ./resourceTool.js -v -n -o $ORG -A get -e test -t xsl -N ScalCustomerOrder_ConvertPKToSVNamespace.xsl
 Edge API resourcefile tool, version: 20190306-0851
@@ -288,7 +314,7 @@ Node.js v10.15.1
 
 ```
 
-## Create
+### Create a Resource
 ```
 $ node ./resourceTool.js -v -n -o $ORG -e test -A create -F ./resourcefiles/xsl/apigee-edgejs-test-lowerCaseElements.xsl
 Edge API resourcefile tool, version: 20190306-0851
@@ -309,7 +335,7 @@ Node.js v10.15.1
 
 ```
 
-## Update
+### Update a Resource
 ```
 $ node ./resourceTool.js -v -n -o $ORG -e test -A update -F ./resourcefiles/xsl/apigee-edgejs-test-lowerCaseElements.xsl
 Edge API resourcefile tool, version: 20190306-0851
@@ -329,7 +355,7 @@ Node.js v10.15.1
 }
 ```
 
-## Delete
+### Delete a Resource
 
 ```
 $ node ./resourceTool.js -v -n -o $ORG -e test -A delete -N apigee-edgejs-test-lowerCaseElements.xsl -t xsl
@@ -347,7 +373,7 @@ OK
 
 ```
 
-# Show Apps by Credential Status
+## Show Apps by Credential Status
 
 This will show all the apps in an organization, grouped by the credential status: no expiry, already expired, expiring soon, and expiring later.  You can specify the timeframe for "soon".
 
@@ -356,7 +382,7 @@ node ./showAppsByCredentialStatus.js -o $ORG  -n --timespan 60d
 
 ```
 
-# Delete expired credentials
+## Delete expired credentials
 
 ```
 $ node ./deleteExpiredCredentials.js -n -o $ORG --timespan 100w
@@ -398,4 +424,10 @@ Node.js v12.14.1
   }
 ]
 
+```
+
+## Clean (delete) all but N revisions of each proxy
+
+```
+$ node ./cleanOldRevisions --token $TOKEN --apigeex -o $ORG --numToKeep 3
 ```

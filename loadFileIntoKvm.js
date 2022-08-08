@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-July-02 17:00:45>
+// last saved: <2022-June-23 09:23:56>
 
 const fs         = require('fs'),
       apigeejs   = require('apigee-edge-js'),
@@ -28,11 +28,11 @@ const fs         = require('fs'),
       util       = require('util'),
       Getopt     = require('node-getopt'),
       version    = '20210323-0851',
-      defaults   = { mapname : 'settings' },
+      defaults   = { mapname : 'settings', encrypted: false},
       getopt     = new Getopt(common.commonOptions.concat([
         ['e' , 'env=ARG', 'required. the Edge environment for which to store the KVM data'],
         ['m' , 'mapname=ARG', 'optional. name of the KVM in Apigee. Will be created if nec. Default: ' + defaults.mapname],
-        ['E' , 'encrypted', 'optional. use an encrypted KVM. Applies only if creating a new KVM. Default: not.'],
+        ['E' , 'encrypted=ARG', 'optional. pass false to use a non-encrypted KVM. Applies only if creating a new KVM on Edge. Default: ' + defaults.encrypted],
         ['F' , 'file=ARG', 'required. the filesystem file to read, to get the content.'],
         ['' , 'entryname=ARG', 'required. name of the entry in KVM to store the content.']
     ])).bindHelp();
