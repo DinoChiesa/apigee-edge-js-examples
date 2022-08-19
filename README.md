@@ -427,3 +427,16 @@ Node.js v16.15.0
 ```
 $ node ./cleanOldRevisions --token $TOKEN --apigeex -o $ORG --numToKeep 3
 ```
+
+
+## Find API Products that have authorization for a particular proxy
+
+```
+$ node ./findApiProductForProxy.js --apigeex --token $TOKEN -o $ORG --proxy producttest-1
+[2022-Aug-19 11:12:19] total count of API products for that org: 4
+[2022-Aug-19 11:12:19] count of API products authorized for producttest-1: 1
+[2022-Aug-19 11:12:19] list: TestingProduct
+
+```
+
+

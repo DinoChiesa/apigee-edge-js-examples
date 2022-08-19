@@ -6,7 +6,7 @@
 /* global process */
 /* jshint esversion:9, node:true, strict:implied */
 
-// Copyright 2017-2021 Google LLC.
+// Copyright 2017-2022 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,14 +21,14 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2021-September-17 08:45:58>
+// last saved: <2022-August-19 11:12:18>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
       apigee   = apigeejs.apigee,
       Getopt   = require('node-getopt'),
       util     = require('util'),
-      version  = '20210323-1805',
+      version  = '20220819-1112',
       getopt   = new Getopt(common.commonOptions.concat([
         ['P' , 'proxy=ARG', 'required. the proxy to find.']
       ])).bindHelp();
@@ -58,7 +58,7 @@ apigee
   .then(org =>
         org.products.get({expand:true})
         .then(result => {
-          console.log('RESULT: ' + JSON.stringify(result, null, 2));
+          //console.log('RESULT: ' + JSON.stringify(result, null, 2));
           let apiproducts = result.apiProduct;
           common.logWrite('total count of API products for that org: %d', apiproducts.length);
 
@@ -97,16 +97,38 @@ apigee
           //    "operationConfigType": "proxy"
           //  },
           //  "graphqlOperationGroup": {
+          //    "operationConfigs": [
+          //      {
+          //        "apiSource": "frankfurter-oauth",
+          //        "operations": [
+          //          {
+          //            "operationTypes": [
+          //              "QUERY"
+          //            ],
+          //            "operation": "SampleQuery"
+          //          }
+          //        ],
+          //        "quota": {}
+          //      }
+          //    ],
           //    "operationConfigType": "proxy"
           //  }
           //
           // Need to inspect that to produce results.
           //
+          let groupContainsProxy = (group) => group && group.operationConfigs &&
+                group.operationConfigs.some(config => config.apiSource == opt.options.proxy);
 
-          let filtered = apiproducts.filter( product => (product.proxies.indexOf(opt.options.proxy) >= 0));
+          let filtered = apiproducts.filter( product =>
+                                           // old model
+                                           (product.proxies && product.proxies.length && product.proxies.indexOf(opt.options.proxy) >= 0) ||
+                                           // new model - REST
+                                           groupContainsProxy(product.operationGroup) ||
+                                           // new model - GraphQL
+                                           groupContainsProxy(product.graphqlOperationGroup));
 
           if (filtered && filtered.length) {
-            common.logWrite('count of API products containing %s: %d', opt.options.proxy, filtered.length);
+            common.logWrite('count of API products authorized for %s: %d', opt.options.proxy, filtered.length);
             if (filtered.length) {
               common.logWrite('list: ' + filtered.map( item => item.name).join(', '));
             }
