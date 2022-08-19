@@ -3,7 +3,7 @@
 These are example tools implemented in nodejs/Javascript, that use the [apigee-edge-js](https://github.com/DinoChiesa/apigee-edge-js) library.
 
 While the name of the repo refers to "Apigee Edge" these tools and the
-underlying library work with Apigee Edge or X/hybrid.
+underlying library work with Apigee Edge or Apigee X/hybrid.
 
 Relying on the capability of the underlying library, the tools can authenticate
 via OAuth bearer tokens to either api.enterprise.apigee.com (for Edge), or
@@ -55,9 +55,9 @@ Options:
   -h, --help
 ```
 
-The options related to authentication, like netrc, passcode, ssoZone, username, and password - will work with Apigee Edge. They are not relevant to Apigee X.  To authenticate to Apigee X, get a token via the gcloud command  (something like `gcloud auth print-access-token`) , and specify it via the `--token` option. 
+The options related to authentication, like netrc, passcode, ssoZone, username, and password - will work with Apigee Edge. They are not relevant to Apigee X.  To authenticate to Apigee X, get a token via the gcloud command  (something like `gcloud auth print-access-token`) , and specify it via the `--token` option.
 
-# Some examples. 
+# Some examples.
 
 ## List Developers
 To list developers for an Edge organization, if you have a token that you obtained via the `acurl` command,  you can do this:
@@ -382,49 +382,45 @@ node ./showAppsByCredentialStatus.js -o $ORG  -n --timespan 60d
 
 ```
 
-## Delete expired credentials
+## Managing credentials
+
+List apps with credentials that have been expired more than 30 days:
 
 ```
-$ node ./deleteExpiredCredentials.js -n -o $ORG --timespan 100w
-Apigee Edge deleteExpiredCredentials.js tool, version: 20201103-1759
-Node.js v12.14.1
+$ node ./credentialstool.js --token $TOKEN -o $ORG --timespan 30d --action list
+Apigee credentials tool, version: 20220819-0952
+Node.js v16.15.0
+...
+```
 
-[2020-Nov-04 08:21:47] will not make any changes...
-[2020-Nov-04 08:21:51] found 50 apps for that org
-[2020-Nov-04 08:21:51] found 18 apps with expired credentials
-[2020-Nov-04 08:21:51] found 21 expired credentials
-[2020-Nov-04 08:21:51] found 1 credentials expired prior to 100w ago
-[2020-Nov-04 08:21:51] not making any changes... (see the --doit option)
-
-
-$ node ./deleteExpiredCredentials.js -n -o $ORG --timespan 100w --doit
-Apigee Edge deleteExpiredCredentials.js tool, version: 20201103-1759
-Node.js v12.14.1
-
-[2020-Nov-04 08:22:01] found 50 apps for that org
-[2020-Nov-04 08:22:01] found 18 apps with expired credentials
-[2020-Nov-04 08:22:01] found 21 expired credentials
-[2020-Nov-04 08:22:01] found 1 credentials expired prior to 100w ago
-[2020-Nov-04 08:22:01] removing them...
-[
-  {
-    "apiProducts": [
-      {
-        "apiproduct": "TestingProduct",
-        "status": "approved"
-      }
-    ],
-    "attributes": [],
-    "consumerKey": "Gt2DNSJrGbscnknlP5o9ii0ObY2nsASO",
-    "consumerSecret": "YKydBxOdAjU70JsC",
-    "expiresAt": 1542213573783,
-    "issuedAt": 1539621573783,
-    "scopes": [],
-    "status": "expired"
-  }
-]
+Delete app credentials that have been expired more than 30 days:
 
 ```
+$ node ./credentialstool.js --token $TOKEN -o $ORG --timespan 30d --action deleteExpired
+Apigee credentials tool, version: 20220819-0952
+Node.js v16.15.0
+...
+```
+
+
+List applications with credentials that do not expire:
+
+```
+$ node ./credentialstool.js --token $TOKEN -o $ORG --action listNoExpiry
+Apigee credentials tool, version: 20220819-0952
+Node.js v16.15.0
+...
+```
+
+List applications with no credentials:
+
+```
+$ node ./credentialstool.js --token $TOKEN -o $ORG --action listNoCreds
+Apigee credentials tool, version: 20220819-0952
+Node.js v16.15.0
+...
+```
+
 
 ## Clean (delete) all but N revisions of each proxy
 
