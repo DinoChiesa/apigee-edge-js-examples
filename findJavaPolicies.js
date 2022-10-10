@@ -23,7 +23,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-August-29 17:23:26>
+// last saved: <2022-October-10 13:14:18>
 
 const apigeejs = require('apigee-edge-js'),
       sprintf    = require('sprintf-js').sprintf,
@@ -41,7 +41,7 @@ const apigeejs = require('apigee-edge-js'),
         ['' , 'findJar=ARG', 'Optional. Find proxies that reference this particular JAR. Use exactly one of the --findXXX options.'],
         ['' , 'findJarRegexp=ARG', 'Optional. Find proxies that reference JAR files that match the regexp. Use exactly one of the --findXXX options.'],
         ['' , 'findJava', 'Optional. Find proxies that use any JavaCallout. Use exactly one of the --findXXX options.'],
-        ['' , 'proxyregexp=ARG', 'Optional. check only for proxies that match this regexp.'],
+        ['' , 'proxyregexp=ARG', 'Optional. check only for proxies with names that match this regexp.'],
         ['' , 'latestrevision', 'Optional. only look in the latest revision number for each proxy.']
       ])).bindHelp();
 
