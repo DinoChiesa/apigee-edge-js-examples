@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-June-23 15:27:31>
+// last saved: <2022-October-13 14:31:39>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -28,7 +28,7 @@ const apigeejs = require('apigee-edge-js'),
       Getopt   = require('node-getopt'),
       pLimit   = require('p-limit'),
       util     = require('util'),
-      version  = '20220623-1527',
+      version  = '20221013-1430',
       getopt   = new Getopt(common.commonOptions.concat([
         ['R' , 'regexp=ARG', 'Optional. Cull only proxies with names matching this regexp.'],
         ['K' , 'numToKeep=ARG', 'Required. Max number of revisions of each proxy to retain.'],
@@ -36,32 +36,34 @@ const apigeejs = require('apigee-edge-js'),
       ])).bindHelp();
 
 // ========================================================
-
-console.log(
-  `Apigee Proxy / Sharedflow revision cleaner tool, version: ${version}\n` +
-    `Node.js ${process.version}\n`);
-
 process.on('unhandledRejection',
             r => console.log('\n*** unhandled promise rejection: ' + util.format(r)));
-
-common.logWrite('start');
 
 // process.argv array starts with 'node' and 'scriptname.js'
 var opt = getopt.parse(process.argv.slice(2));
 
+if (opt.options.verbose) {
+  console.log(
+    `Apigee Proxy / Sharedflow revision cleaner tool, version: ${version}\n` +
+      `Node.js ${process.version}\n`);
+  common.logWrite('start');
+}
+
 function examineRevisions(collection, name, revisions) {
+  if (opt.options.verbose) {
     common.logWrite('revisions %s: %s', name, JSON.stringify(revisions));
-    if (revisions && revisions.length > opt.options.numToKeep) {
-      revisions.sort( (a, b) => b - a );
-      revisions.reverse();
-      let revisionsToExamine = revisions.slice(0, revisions.length - opt.options.numToKeep);
-      revisionsToExamine.reverse();
+  }
+  if (revisions && revisions.length > opt.options.numToKeep) {
+    revisions.sort( (a, b) => b - a );
+    revisions.reverse();
+    let revisionsToExamine = revisions.slice(0, revisions.length - opt.options.numToKeep);
+    revisionsToExamine.reverse();
 
-      // limit the number of concurrent requests
-      const limit = pLimit(4);
+    // limit the number of concurrent requests
+    const limit = pLimit(4);
 
-      const mapper =
-        revision => limit( _ => {
+    const mapper =
+      revision => limit( _ => {
         const options = { name, revision };
         return collection.getDeployments(options)
           .then( deployments => {
@@ -73,16 +75,16 @@ function examineRevisions(collection, name, revisions) {
           });
       });
 
-      return Promise.all(revisionsToExamine.map(mapper))
-        .then ( revisions => {
-          revisions = revisions.filter( r => r);
-          if (opt.options.verbose) {
-            common.logWrite("deleted %s: %s", name, JSON.stringify(revisions));
-          }
-          return {item:name, revisions};
-        } );
-    }
-    return null;
+    return Promise.all(revisionsToExamine.map(mapper))
+      .then ( revisions => {
+        revisions = revisions.filter( r => r);
+        if (opt.options.verbose) {
+          common.logWrite("deleted %s: %s", name, JSON.stringify(revisions));
+        }
+        return {item:name, revisions};
+      } );
+  }
+  return null;
 }
 
 
@@ -135,7 +137,9 @@ apigee.connect(common.optToOptions(opt))
             .reduce(reducer, Promise.resolve([]))
             .then( a => {
               a = a.filter( x => !!x );
-              common.logWrite('summary deleted: ' + JSON.stringify(a));
+              if (opt.options.verbose) {
+                common.logWrite('summary deleted: ' + JSON.stringify(a));
+              }
             });
       });
   })
