@@ -440,3 +440,37 @@ $ node ./findApiProductForProxy.js --apigeex --token $TOKEN -o $ORG --proxy prod
 ```
 
 
+## List API Proxy basepaths and Targets
+
+Do you want a list of all the basepaths and target paths for deployed proxies? 
+
+```
+$ node ./listBasePathsAndTargets.js -v --token $TOKEN --apigeex -o $ORG --proxypattern '^e.*$' --filter=deployed
+
+[
+  {
+    "proxyname": "echo-1",
+    "found": [
+      {
+        "environment": "eval",
+        "revision": "7",
+        "endpoint": [
+          {
+            "proxy": "endpoint1",
+            "basePath": "/echo-1",
+            "adminPath": "/apis/echo-1/revisions/7/proxies/endpoint1"
+          },
+          {
+            "target": "echo",
+            "url": "https://echo.dchiesa.demo.altostrat.com/",
+            "adminPath": "/apis/echo-1/revisions/7/targets/echo"
+          }
+        ]
+      }
+    ]
+  }
+]
+
+```
+
+

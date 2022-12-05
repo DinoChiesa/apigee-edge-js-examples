@@ -18,7 +18,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2022-December-05 09:59:41>
+// last saved: <2022-December-05 10:38:49>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -29,7 +29,7 @@ const apigeejs = require('apigee-edge-js'),
       DOM      = require('@xmldom/xmldom').DOMParser,
       xpath    = require('xpath'),
       Getopt   = require('node-getopt'),
-      version  = '20221205-0809',
+      version  = '20221205-1038',
       getopt   = new Getopt(common.commonOptions.concat([
         ['' , 'proxypattern=ARG', 'Optional. a regular expression. Look only in proxies that match this regexp.'],
         ['' , 'filter=ARG', 'Optional. filter the set of proxies. valid values: (deployed, deployed:envname, latest).']
@@ -211,16 +211,16 @@ apigee
           if (Array.isArray(apiproxies.proxies)) {
             apiproxies = apiproxies.proxies.map(p => p.name);
           }
-        if (opt.options.verbose) {
-          common.logWrite('total count of API proxies for that org: %d', apiproxies.length);
-        }
-        return apiproxies
-          .filter( isKeeper(opt) )
-          .sort()
-          .reduce( toRevisions(org), Promise.resolve([]));
+          if (opt.options.verbose) {
+            common.logWrite('total count of API proxies for that org: %d', apiproxies.length);
+          }
+          return apiproxies
+            .filter( isKeeper(opt) )
+            .sort()
+            .reduce( toRevisions(org), Promise.resolve([]));
         })
         .then( candidates => {
-          console.log('candidates: ' + JSON.stringify(candidates, null, 2));
+          //console.log('candidates: ' + JSON.stringify(candidates, null, 2));
           let r = (p, nameAndRevisions) =>
           p.then( accumulator => {
             let mapper = revisionMapper(org, nameAndRevisions.name);
