@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-March-23 14:42:36>
+// last saved: <2022-December-05 09:15:19>
 
 const apigeejs   = require('apigee-edge-js'),
       common     = apigeejs.utility,
@@ -53,7 +53,7 @@ if (opt.options.verbose) {
 }
 
 if ( !opt.options.source ) {
-  console.log('You must specify a source directory');
+  console.log('You must specify a source directory or zip bundle');
   getopt.showHelp();
   process.exit(1);
 }
