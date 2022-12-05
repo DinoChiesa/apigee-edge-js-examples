@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-June-13 13:14:46>
+// last saved: <2022-September-30 11:04:06>
 /* jslint esversion:9 */
 
 const apigeejs   = require('apigee-edge-js'),
@@ -87,18 +87,27 @@ function revReducer(options, org, envs, name) {
             .then( r => r.deployments || r.environment)
             .then( deployments => {
               //console.log('deployments: ' + util.format(deployments));
+              if ( ! deployments && options.trial) {
+                common.logWrite(`api ${name} r${revision}: No deployments`);
+              }
               return (deployments && deployments.length > 0) ?
                 deployments.reduce(revEnvReducer(options, org, envs, name, revision), Promise.resolve()) : {};
             }));
 }
 
-console.log(
-  `Apigee Proxy Undeploy + Delete tool, version: ${version}\n` +
-    `Node.js ${process.version}\n`);
+const generateDeleteUrl = (org, args) => `${org.conn.urlBase}/apis/${args.name}`;
 
-common.logWrite('start');
+//====================================================================
 
 let opt = getopt.parse(process.argv.slice(2));
+
+if (opt.options.verbose) {
+  console.log(
+    `Apigee Proxy Undeploy + Delete tool, version: ${version}\n` +
+      `Node.js ${process.version}\n`);
+
+  common.logWrite('start');
+}
 
 let proxyMatcher = getNameMatcher(opt.options);
 
@@ -125,7 +134,7 @@ apigee.connect(common.optToOptions(opt))
                 .then( _ => {
                   if (opt.options.delete) {
                     let args = { name: item.name || item};
-                    return opt.options.trial ? (console.log('WOULD DELETE ' + JSON.stringify(args)) && {}) :
+                    return opt.options.trial ? (common.logWrite('WOULD DELETE ' + generateDeleteUrl(org, args)) && {}) :
                       org.proxies.del(args);
                   }
                   return {};
@@ -135,6 +144,6 @@ apigee.connect(common.optToOptions(opt))
           .filter( p => predicate(p))
           .reduce(proxyReducer, Promise.resolve()) ;
       })
-      .then( results => common.logWrite('all done...') )
+      .then( results => opt.options.verbose && common.logWrite('all done...') )
   )
   .catch( e => console.log(util.format(e)));
