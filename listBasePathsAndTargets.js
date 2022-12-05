@@ -18,7 +18,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2022-December-05 10:38:49>
+// last saved: <2022-December-05 11:38:09>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -187,7 +187,7 @@ var opt = getopt.parse(process.argv.slice(2));
 
 if (opt.options.verbose) {
   console.log(
-    `Apigee listProxiesByBasepath.js tool, version: ${version}\n` +
+    `Apigee listBasePathsAndTargets.js tool, version: ${version}\n` +
       `Node.js ${process.version}\n`);
 
   common.logWrite('start');
