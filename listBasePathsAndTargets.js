@@ -18,7 +18,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2022-December-05 09:17:57>
+// last saved: <2022-December-05 09:59:41>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -149,17 +149,16 @@ const toRevisions = org =>
   promise .then( accumulator => {
     if (isFilterDeployedEnv() || isFilterDeployed()) {
       let environment = isFilterDeployedEnv();
-      return org.proxies.getDeployments({ name, environment})
+      return org.proxies.getDeployments({ name, environment })
         .then( response => {
           if (response.deployments) {
             // GAAMBO
-            let deployments = response.deployments.map( d => ({name, revision:[d.revision]}));
+            let deployments = response.deployments.map( d => ({name, revision:[d.revision], environment:d.environment}));
             return [...accumulator, ...deployments];
           }
           if (response.revision) {
             // Admin API
             let deployments = response.revision.map( r => ({name, revision:[r.name]}));
-            //console.log('deployments: ' + JSON.stringify(deployments, null, 2));
             return [...accumulator, ...deployments];
           }
           return accumulator;
@@ -195,7 +194,7 @@ if (opt.options.verbose) {
 }
 
 if (opt.options.filter && !isFilterLatestRevision() && !isFilterDeployed() && !isFilterDeployedEnv()) {
-  console.log('It looks lik you\'ve specified an invalid filter.');
+  console.log("It looks like you've specified an invalid filter.");
   getopt.showHelp();
   process.exit(1);
 }
@@ -221,13 +220,13 @@ apigee
           .reduce( toRevisions(org), Promise.resolve([]));
         })
         .then( candidates => {
-          //console.log('candidates: ' + JSON.stringify(candidates, null, 2));
+          console.log('candidates: ' + JSON.stringify(candidates, null, 2));
           let r = (p, nameAndRevisions) =>
           p.then( accumulator => {
             let mapper = revisionMapper(org, nameAndRevisions.name);
             return nameAndRevisions.revision
               .reduce(revisionReducer(mapper), Promise.resolve([]))
-              .then( a => [...accumulator, {proxyname: nameAndRevisions.name, found:a}]);
+              .then( a => [...accumulator, {proxyname: nameAndRevisions.name, found:a.map(e => ({environment: nameAndRevisions.environment, ...e }))}]);
         });
         return candidates.reduce(r, Promise.resolve([]));
       })
