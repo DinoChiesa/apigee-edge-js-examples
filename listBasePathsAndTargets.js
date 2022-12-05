@@ -18,7 +18,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2022-December-05 08:30:53>
+// last saved: <2022-December-05 09:17:57>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -31,10 +31,13 @@ const apigeejs = require('apigee-edge-js'),
       Getopt   = require('node-getopt'),
       version  = '20221205-0809',
       getopt   = new Getopt(common.commonOptions.concat([
-        ['' , 'env=ARG', 'Optional. an environment. Look only in proxies that are deployed to this environment.'],
         ['' , 'proxypattern=ARG', 'Optional. a regular expression. Look only in proxies that match this regexp.'],
-        ['' , 'latestrevision', 'Optional. only look in the latest revision number for each proxy.']
+        ['' , 'filter=ARG', 'Optional. filter the set of proxies. valid values: (deployed, deployed:envname, latest).']
       ])).bindHelp();
+
+const isFilterLatestRevision = () => opt.options.filter == 'latest';
+const isFilterDeployed = () => opt.options.filter == 'deployed';
+const isFilterDeployedEnv = () => opt.options.filter && opt.options.filter.startsWith('deployed:') && opt.options.filter.slice(9);
 
 function isKeeper(opt) {
   if (opt.options.proxypattern) {
@@ -144,8 +147,9 @@ const revisionReducer = fn =>
 const toRevisions = org =>
  (promise, name) =>
   promise .then( accumulator => {
-    if (opt.options.env) {
-      return org.proxies.getDeployments({ name, environment: opt.options.env})
+    if (isFilterDeployedEnv() || isFilterDeployed()) {
+      let environment = isFilterDeployedEnv();
+      return org.proxies.getDeployments({ name, environment})
         .then( response => {
           if (response.deployments) {
             // GAAMBO
@@ -170,7 +174,7 @@ const toRevisions = org =>
 
     return org.proxies.get({ name })
       .then( ({revision}) => {
-        if (opt.options.latestrevision) {
+        if (isFilterLatestRevision()) {
           revision = [revision.pop()];
         }
         return [ ...accumulator, {name, revision} ];
@@ -189,6 +193,13 @@ if (opt.options.verbose) {
 
   common.logWrite('start');
 }
+
+if (opt.options.filter && !isFilterLatestRevision() && !isFilterDeployed() && !isFilterDeployedEnv()) {
+  console.log('It looks lik you\'ve specified an invalid filter.');
+  getopt.showHelp();
+  process.exit(1);
+}
+
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
