@@ -108,6 +108,8 @@ apigee.connect(common.optToOptions(opt))
           // convert for GAAMBO
           if (results.proxies && results.proxies.length) {
             results = results.proxies.map(r => r.name);
+          } else if (results.sharedFlows && results.sharedFlows.length) {
+            results = results.sharedFlows.map(r => r.name);
           }
         }
         if (opt.options.regexp) {
