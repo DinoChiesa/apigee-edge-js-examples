@@ -5,7 +5,7 @@
 // In Apigee, for all proxies or sharedflows in an org, remove all
 // but the latest N revisions. (Never remove a deployed revision).
 //
-// Copyright 2017-2022 Google LLC.
+// Copyright 2017-2023 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2022-October-13 14:31:39>
+// last saved: <2023-July-26 11:48:04>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -28,7 +28,7 @@ const apigeejs = require('apigee-edge-js'),
       Getopt   = require('node-getopt'),
       pLimit   = require('p-limit'),
       util     = require('util'),
-      version  = '20221013-1430',
+      version  = '20230726-1147',
       getopt   = new Getopt(common.commonOptions.concat([
         ['R' , 'regexp=ARG', 'Optional. Cull only proxies with names matching this regexp.'],
         ['K' , 'numToKeep=ARG', 'Required. Max number of revisions of each proxy to retain.'],
@@ -38,6 +38,10 @@ const apigeejs = require('apigee-edge-js'),
 // ========================================================
 process.on('unhandledRejection',
             r => console.log('\n*** unhandled promise rejection: ' + util.format(r)));
+
+const notDeployed = (result) =>
+  (! result.environment || result.environment.length === 0) &&
+  ( ! result.deployments);
 
 // process.argv array starts with 'node' and 'scriptname.js'
 var opt = getopt.parse(process.argv.slice(2));
@@ -66,11 +70,11 @@ function examineRevisions(collection, name, revisions) {
       revision => limit( _ => {
         const options = { name, revision };
         return collection.getDeployments(options)
-          .then( deployments => {
+          .then( result => {
             if (opt.options.verbose) {
-              common.logWrite('deployments (%s r%s): %s', name, revision, JSON.stringify(deployments));
+              common.logWrite('deployments (%s r%s): %s', name, revision, JSON.stringify(result));
             }
-            return (! deployments.environment || deployments.environment.length === 0) ?
+            return notDeployed(result)?
               collection.del(options).then ( _ => revision ) : null;
           });
       });

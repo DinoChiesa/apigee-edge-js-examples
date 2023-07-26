@@ -38,7 +38,7 @@
     "xpath": "^0.0.32"
   },
   "overrides": {
-    "lodash": "^4.17.21"
+    "lodash": "4.17.21"
   },
   "engines": {
     "node": ">= 12.22.0",
