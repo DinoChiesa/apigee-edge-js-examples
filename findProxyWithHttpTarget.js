@@ -1,4 +1,4 @@
-// findProxyWithTargetType.js
+// findProxyWithHttpTarget.js
 // ------------------------------------------------------------------
 //
 // Copyright 2018-2023 Google LLC.
@@ -16,28 +16,29 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2023-September-25 10:20:43>
+// last saved: <2023-September-25 10:19:59>
 /* global process */
 
-const apigeejs     = require('apigee-edge-js'),
-      common     = apigeejs.utility,
-      apigee   = apigeejs.apigee,
-      util       = require('util'),
-      AdmZip   = require('adm-zip'),
-      DOM      = require('@xmldom/xmldom').DOMParser,
-      xpath    = require('xpath'),
-      Getopt     = require('node-getopt'),
-      version    = '20230925-0930',
-      allowedTargetTypes = [ 'http', 'node', 'hosted'],
+const apigeejs           = require('apigee-edge-js'),
+      common             = apigeejs.utility,
+      apigee             = apigeejs.apigee,
+      util               = require('util'),
+      AdmZip             = require('adm-zip'),
+      DOM                = require('@xmldom/xmldom').DOMParser,
+      xpath              = require('xpath'),
+      Getopt             = require('node-getopt'),
+      version            = '20230925-1013',
       getopt     = new Getopt(common.commonOptions.concat([
-        ['R' , 'regexp=ARG', 'Optional. Restrict the search to proxies with names that match regexp.'],
-        ['T' , 'targettype=ARG', `Required. One of [ ${allowedTargetTypes.toString()} ].`],
+        ['' , 'proxyregexp=ARG', 'Optional. Restrict the search to proxies with names that match regexp.'],
+        ['' , 'targeturlregexp=ARG', `Required. Find proxies with http targets with urls matching this regexp.`],
         ['' , 'filter=ARG', 'Optional. filter the set of proxies. valid values: (deployed, deployed:envname, latest).']
       ])).bindHelp();
 
 const isFilterLatestRevision = () => opt.options.filter == 'latest';
 const isFilterDeployed = () => opt.options.filter == 'deployed';
 const isFilterDeployedEnv = () => opt.options.filter && opt.options.filter.startsWith('deployed:') && opt.options.filter.slice(9);
+let targetUrlRegexp = null;
+let opt = null;
 
 const revisionMapper = (org, name) =>
   revision =>
@@ -52,13 +53,16 @@ const revisionMapper = (org, name) =>
         const data = entry.getData().toString('utf8'),
             doc = new DOM().parseFromString(data),
             endpointName = xpath.select('/TargetEndpoint/@name', doc)[0].value,
-            elementName = { http : 'HTTPTargetConnection',
-                            node: 'ScriptTarget',
-                            hosted : 'HostedTarget'},
-            xpathQuery = `/TargetEndpoint/${elementName[opt.options.targettype]}`,
-            targetConnectionNodeset = xpath.select(xpathQuery, doc);
-        return (targetConnectionNodeset && targetConnectionNodeset[0]) ?
-          endpointName : null;
+            httpTargetConnectionNodeset = xpath.select('/TargetEndpoint/HTTPTargetConnection', doc);
+        if ( ! httpTargetConnectionNodeset || !httpTargetConnectionNodeset[0]) {
+          return null;
+        }
+        const urlNodeset = xpath.select('/TargetEndpoint/HTTPTargetConnection/URL', doc);
+        if ( ! urlNodeset || !urlNodeset[0]) {
+          return null;
+        }
+        const url = urlNodeset[0].childNodes[0].data;
+        return (url.match(targetUrlRegexp)) ? endpointName : null;
       });
     return targetEndpoints.filter(e => !!e);
   });
@@ -115,15 +119,17 @@ console.log(
 common.logWrite('start');
 
 // process.argv array starts with 'node' and 'scriptname.js'
-var opt = getopt.parse(process.argv.slice(2));
+opt = getopt.parse(process.argv.slice(2));
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
-if ( ! opt.options.targettype || !allowedTargetTypes.includes(opt.options.targettype)) {
-  console.log('You must specify a valid target type.');
+if ( ! opt.options.targeturlregexp ) {
+  console.log('You must specify a regexp for the target URL.');
   getopt.showHelp();
   process.exit(1);
 }
+
+targetUrlRegexp = new RegExp(opt.options.targeturlregexp);
 
 apigee.connect(common.optToOptions(opt))
   .then (org =>
