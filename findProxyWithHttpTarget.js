@@ -16,7 +16,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2023-September-25 10:19:59>
+// last saved: <2023-September-26 14:38:41>
 /* global process */
 
 const apigeejs           = require('apigee-edge-js'),
@@ -33,12 +33,12 @@ const apigeejs           = require('apigee-edge-js'),
         ['' , 'targeturlregexp=ARG', `Required. Find proxies with http targets with urls matching this regexp.`],
         ['' , 'filter=ARG', 'Optional. filter the set of proxies. valid values: (deployed, deployed:envname, latest).']
       ])).bindHelp();
+let opt = null;
 
 const isFilterLatestRevision = () => opt.options.filter == 'latest';
 const isFilterDeployed = () => opt.options.filter == 'deployed';
 const isFilterDeployedEnv = () => opt.options.filter && opt.options.filter.startsWith('deployed:') && opt.options.filter.slice(9);
 let targetUrlRegexp = null;
-let opt = null;
 
 const revisionMapper = (org, name) =>
   revision =>
