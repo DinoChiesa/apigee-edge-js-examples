@@ -16,7 +16,7 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2023-September-25 10:20:43>
+// last saved: <2023-September-26 14:39:41>
 /* global process */
 
 const apigeejs     = require('apigee-edge-js'),
@@ -34,6 +34,8 @@ const apigeejs     = require('apigee-edge-js'),
         ['T' , 'targettype=ARG', `Required. One of [ ${allowedTargetTypes.toString()} ].`],
         ['' , 'filter=ARG', 'Optional. filter the set of proxies. valid values: (deployed, deployed:envname, latest).']
       ])).bindHelp();
+
+let opt = null;
 
 const isFilterLatestRevision = () => opt.options.filter == 'latest';
 const isFilterDeployed = () => opt.options.filter == 'deployed';
@@ -115,7 +117,7 @@ console.log(
 common.logWrite('start');
 
 // process.argv array starts with 'node' and 'scriptname.js'
-var opt = getopt.parse(process.argv.slice(2));
+opt = getopt.parse(process.argv.slice(2));
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
