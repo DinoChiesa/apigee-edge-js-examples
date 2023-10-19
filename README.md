@@ -442,7 +442,7 @@ $ node ./findApiProductForProxy.js --apigeex --token $TOKEN -o $ORG --proxy prod
 
 ## List API Proxy basepaths and Targets
 
-Do you want a list of all the basepaths and target paths for deployed proxies? 
+Do you want a list of all the basepaths and target paths for deployed proxies?
 
 ```
 $ node ./listBasePathsAndTargets.js -v --token $TOKEN --apigeex -o $ORG --proxypattern '^e.*$' --filter=deployed
@@ -473,4 +473,36 @@ $ node ./listBasePathsAndTargets.js -v --token $TOKEN --apigeex -o $ORG --proxyp
 
 ```
 
+## List Proxies with specific target types
 
+```
+$ node ./findProxyWithTargetType.js -v --token $TOKEN --apigeex -o $ORG --targettype http --filter=deployed
+
+[
+  {
+    "proxyname": "aqi-for-zip-mashup",
+    "found": [
+      {
+        "environment": "eval",
+        "revision": "11",
+        "targetEndpoints": [
+          "http-1"
+        ]
+      }
+    ]
+  },
+  {
+    "proxyname": "conditional-dynamic-target-url",
+    "found": [
+      {
+        "environment": "eval",
+        "revision": "7",
+        "targetEndpoints": [
+          "default"
+        ]
+      }
+    ]
+  },
+  ...
+
+```

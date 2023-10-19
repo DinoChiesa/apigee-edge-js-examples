@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2023-July-26 11:48:04>
+// last saved: <2023-September-26 14:40:58>
 
 const apigeejs = require('apigee-edge-js'),
       common   = apigeejs.utility,
@@ -44,7 +44,7 @@ const notDeployed = (result) =>
   ( ! result.deployments);
 
 // process.argv array starts with 'node' and 'scriptname.js'
-var opt = getopt.parse(process.argv.slice(2));
+let opt = getopt.parse(process.argv.slice(2));
 
 if (opt.options.verbose) {
   console.log(
