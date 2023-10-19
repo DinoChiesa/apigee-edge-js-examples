@@ -506,3 +506,33 @@ $ node ./findProxyWithTargetType.js -v --token $TOKEN --apigeex -o $ORG --target
   ...
 
 ```
+
+## List proxies that have a particular policy type
+
+```
+$ node ./scanProxiesForPolicytype.js  --token $TOKEN --apigeex -o $ORG --policytype ServiceCallout --filter=deployed
+
+[
+  {
+    "proxyname": "aqi-for-zip-mashup",
+    "found": [
+      {
+        "revision": "11",
+        "policies": [
+          "SC-Get-City-For-Zip.xml"
+        ]
+      }
+    ]
+  },
+  {
+    "proxyname": "business-ops",
+    "found": [
+      {
+        "revision": "22",
+        "policies": [
+          "SC-OPA-Check-Authz.xml"
+        ]
+      }
+    ]
+  },
+```
