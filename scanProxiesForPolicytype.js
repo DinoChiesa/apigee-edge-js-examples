@@ -18,10 +18,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2023-October-19 11:46:46>
+// last saved: <2023-October-19 11:49:29>
 
 const apigeejs = require("apigee-edge-js"),
-  sprintf = require("sprintf-js").sprintf,
   common = apigeejs.utility,
   apigee = apigeejs.apigee,
   tmp = require("tmp-promise"),
@@ -30,7 +29,6 @@ const apigeejs = require("apigee-edge-js"),
   AdmZip = require("adm-zip"),
   Dom = require("@xmldom/xmldom").DOMParser,
   Getopt = require("node-getopt"),
-  util = require("util"),
   version = "20231019-0951",
   getopt = new Getopt(
     common.commonOptions.concat([
@@ -171,7 +169,7 @@ apigee
           return org.proxies
             .export({ name: name, revision: revision })
             .then((result) => {
-              let pathOfZip = path.join(tmpdir.path, result.filename);
+              const pathOfZip = path.join(tmpdir.path, result.filename);
               fs.writeFileSync(pathOfZip, result.buffer);
               if (opt.options.verbose) {
                 common.logWrite("export ok: %s", pathOfZip);
@@ -182,11 +180,11 @@ apigee
 
         function unzipRevision(name, revision) {
           return exportOneProxyRevision(name, revision).then((pathOfZip) => {
-            let zip = new AdmZip(pathOfZip);
-            let pathOfUnzippedBundle = path.join(
-              tmpdir.path,
-              `proxy-${name}-r${revision}`
-            );
+            const zip = new AdmZip(pathOfZip),
+              pathOfUnzippedBundle = path.join(
+                tmpdir.path,
+                `proxy-${name}-r${revision}`
+              );
             zip.extractAllTo(pathOfUnzippedBundle, false);
             if (opt.options.verbose) {
               common.logWrite("unzipped to: %s", pathOfUnzippedBundle);
