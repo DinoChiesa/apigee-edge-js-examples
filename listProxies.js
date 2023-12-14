@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------
 // list proxies (and maybe deployments of same) in Apigee
 //
-// Copyright 2017-2021 Google LLC.
+// Copyright 2017-2023 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2021-September-17 08:13:38>
+// last saved: <2023-December-14 12:35:58>
 
 const apigeejs   = require('apigee-edge-js'),
       util       = require('util'),
@@ -26,8 +26,9 @@ const apigeejs   = require('apigee-edge-js'),
       apigee     = apigeejs.apigee,
       sprintf    = require('sprintf-js').sprintf,
       Getopt     = require('node-getopt'),
-      version    = '20210917-0813',
+      version    = '20231214-1219',
       getopt     = new Getopt(common.commonOptions.concat([
+          ['' , 'namepattern=ARG', 'Optional. specify a regex as a pattern for the proy name'],
           ['E' , 'elaborate', 'Optional. inquire and show the deployments of each proxy, too.'],
       ])).bindHelp();
 
@@ -52,6 +53,11 @@ apigee.connect(common.optToOptions(opt))
           common.logWrite(sprintf('found %d proxies', proxies.length));
           return proxies;
         })
+
+        .then(proxies =>
+              (opt.options.namepattern) ?
+              proxies.filter( p => p.match(new RegExp(opt.options.namepattern))) :  proxies )
+
         .then(proxies =>
            (opt.options.elaborate) ?
                proxies
