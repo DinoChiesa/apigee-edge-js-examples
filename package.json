@@ -1,6 +1,6 @@
 {
   "name": "apigee-js-examples",
-  "version": "0.4.33",
+  "version": "0.4.36",
   "description": "Examples for using the Apigee nodeJS library",
   "main": "importAndDeploy.js",
   "scripts": {
@@ -23,7 +23,7 @@
     "@peculiar/x509": "^1.2.2",
     "@xmldom/xmldom": "^0.7.5",
     "adm-zip": "^0.4.16",
-    "apigee-edge-js": "^0.4.33",
+    "apigee-edge-js": "^0.4.36",
     "debug": "^4.3.3",
     "mkdirp": "1.0.3",
     "netrc": "0.1.3",
