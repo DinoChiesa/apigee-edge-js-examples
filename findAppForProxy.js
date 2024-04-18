@@ -1,7 +1,7 @@
 // findAppForProxy.js
 // ------------------------------------------------------------------
 //
-// Copyright 2017-2018 Google LLC.
+// Copyright 2017-2024 Google LLC.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,90 +16,108 @@
 // limitations under the License.
 //
 // created: Mon Mar 20 09:57:02 2017
-// last saved: <2019-February-11 13:14:08>
+// last saved: <2024-April-17 17:29:30>
 
-const edgejs     = require('apigee-edge-js'),
-      common     = edgejs.utility,
-      apigeeEdge = edgejs.edge,
-      Getopt     = require('node-getopt'),
-      version    = '20190211-1313',
-      getopt     = new Getopt(common.commonOptions.concat([
-        ['P' , 'proxy=ARG', 'required. the proxy for which to list apps.']
-      ])).bindHelp();
-
-function handleError(e) {
-    if (e) {
-      console.log(e);
-      console.log(e.stack);
-      process.exit(1);
-    }
-}
+const apigeejs = require("apigee-edge-js"),
+  common = apigeejs.utility,
+  apigee = apigeejs.apigee,
+  util = require("util"),
+  Getopt = require("node-getopt"),
+  version = "20240417-1723",
+  getopt = new Getopt(
+    common.commonOptions.concat([
+      ["P", "proxy=ARG", "required. the proxy for which to list apps."]
+    ])
+  ).bindHelp();
 
 // ========================================================
+process.on("unhandledRejection", (r) =>
+  console.log("\n*** unhandled promise rejection: " + util.format(r))
+);
 
 console.log(
-  'Apigee Edge findAppForProxy.js tool, version: ' + version + '\n' +
-    'Node.js ' + process.version + '\n');
+  `Apigee findAppForProxy.js tool, version: ${version}\nNode.js ${process.version}\n`
+);
 
-common.logWrite('start');
+common.logWrite("start");
 
 // process.argv array starts with 'node' and 'scriptname.js'
-var opt = getopt.parse(process.argv.slice(2));
+const opt = getopt.parse(process.argv.slice(2));
 
 common.verifyCommonRequiredParameters(opt.options, getopt);
 
-if ( !opt.options.proxy ) {
-  console.log('You must specify a proxy to find');
+if (!opt.options.proxy) {
+  console.log("You must specify a proxy to find");
   getopt.showHelp();
   process.exit(1);
 }
 
-apigeeEdge.connect(common.optToOptions(opt), function(e, org) {
-  handleError(e);
-  common.logWrite('searching...');
-  org.products.get({expand:true}, function(e, result) {
-    handleError(e);
-    var apiproducts = result.apiProduct;
-    common.logWrite('total count of API products for that org: %d', apiproducts.length);
-    var filteredProducts = apiproducts.filter(function(product) {
-          return (product.proxies.indexOf(opt.options.proxy) >= 0);
-        });
+apigee
+  .connect(common.optToOptions(opt))
+  .then((org) => {
+    common.logWrite("searching...");
+    org.products.get({ expand: true }).then((result) => {
+      const apiproducts = result.apiProduct;
+      common.logWrite(
+        "total count of API products for that org: %d",
+        apiproducts.length
+      );
+      const filteredProducts = apiproducts.filter((p) => {
+        if (p.proxies) {
+          return p.proxies.indexOf(opt.options.proxy) >= 0;
+        }
+        return (
+          p.operationGroup &&
+          p.operationGroup.operationConfigType == "proxy" &&
+          p.operationGroup.operationConfigs.find(
+            (c) => c.apiSource == opt.options.proxy
+          )
+        );
+      });
 
-    if (filteredProducts) {
-      common.logWrite('count of API products containing %s: %d', opt.options.proxy, filteredProducts.length);
+      common.logWrite(
+        "count of API products containing %s: %d",
+        opt.options.proxy,
+        filteredProducts.length
+      );
       if (filteredProducts.length) {
-        common.logWrite('list: ' + filteredProducts.map( function(item) { return item.name;}).join(', '));
-        org.apps.get({expand:true}, function(e, result) {
-          handleError(e);
-          var apps = result.app;
-          common.logWrite('total count of apps for that org: %d', apps.length);
-          var filteredProductNames = filteredProducts.map( p => p.name);
-          var filteredApps = apps.filter(function(app) {
-                var creds = app.credentials.filter(function(cred) {
-                      return cred.apiProducts.find(function (prod) {
-                        return (filteredProductNames.indexOf(prod.apiproduct) >= 0);
-                      });
-                    });
-                return creds && (creds.length > 0);
-              });
+        common.logWrite(
+          `list: ${filteredProducts.map((item) => item.name).join(", ")}`
+        );
+        org.apps.get({ expand: true }).then((result) => {
+          const apps = result.app;
+          common.logWrite("total count of apps for that org: %d", apps.length);
+          const filteredProductNames = filteredProducts.map((p) => p.name);
+          const filteredApps = apps.filter((app) => {
+            const creds = app.credentials.filter((cred) =>
+              cred.apiProducts.find((prod) =>
+                filteredProductNames.includes(prod.apiproduct)
+              )
+            );
+            return creds && creds.length > 0;
+          });
 
           if (filteredApps) {
-            common.logWrite('count of Apps containing %s: %d', opt.options.proxy, filteredApps.length);
+            common.logWrite(
+              "count of Apps containing %s: %d",
+              opt.options.proxy,
+              filteredApps.length
+            );
             if (filteredApps.length) {
-              filteredApps.forEach( (a, ix) => {
-                common.logWrite(ix + ': /v1/o/' + org.conn.orgname + '/developers/' + a.developerId + '/apps/' + a.name);
+              filteredApps.forEach((a, ix) => {
+                common.logWrite(
+                  `${ix}: /v1/organizations/${org.conn.orgname}/developers/${a.developerId}/apps/${a.name}`
+                );
               });
             }
-            if ( opt.options.verbose ) {
+            if (opt.options.verbose) {
               common.logWrite(JSON.stringify(filteredApps, null, 2));
             }
-          }
-          else {
+          } else {
             common.logWrite("none found");
           }
-
         });
       }
-    }
-  });
-});
+    });
+  })
+  .catch((e) => console.log("while executing, error: " + util.format(e)));
