@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2025-January-15 04:05:15>
+// last saved: <2025-January-15 04:06:10>
 
 const apigeejs = require("apigee-edge-js"),
   util = require("util"),
@@ -27,7 +27,7 @@ const apigeejs = require("apigee-edge-js"),
   apigee = apigeejs.apigee,
   sprintf = require("sprintf-js").sprintf,
   Getopt = require("node-getopt"),
-  version = "20220511-1117",
+  version = "20250115-0406",
   getopt = new Getopt(
     common.commonOptions.concat([
       [
