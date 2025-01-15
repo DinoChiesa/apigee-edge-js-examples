@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2025-January-15 04:06:10>
+// last saved: <2025-January-15 04:06:52>
 
 const apigeejs = require("apigee-edge-js"),
   util = require("util"),
@@ -96,7 +96,7 @@ apigee
   })
   .then((results) => {
     common.logWrite(sprintf("found %d deployments", results.length));
-    if (opt.verbose) {
+    if (opt.options.verbose) {
       console.log("results: " + JSON.stringify(results, null, 2));
     }
   })
