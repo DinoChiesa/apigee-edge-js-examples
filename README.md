@@ -422,10 +422,10 @@ Node.js v16.15.0
 ```
 
 
-## Clean (delete) all but N revisions of each proxy
+## Clean (delete) all but N revisions of each proxy AND sharedflow
 
 ```
-$ node ./cleanOldRevisions --token $TOKEN --apigeex -o $ORG --numToKeep 3
+$ node ./cleanOldRevisions.js --token $TOKEN --apigeex -o $ORG --numToKeep 3
 ```
 
 
