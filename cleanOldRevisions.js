@@ -19,7 +19,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// last saved: <2025-September-19 18:20:34>
+// last saved: <2025-September-19 19:15:19>
 
 const apigeejs = require("apigee-edge-js"),
   Getopt = require("node-getopt"),
@@ -27,7 +27,7 @@ const apigeejs = require("apigee-edge-js"),
   util = require("node:util"),
   common = apigeejs.utility,
   apigee = apigeejs.apigee,
-  version = "20250919-1637",
+  version = "20250919-1915",
   getopt = new Getopt(
     common.commonOptions.concat([
       [
@@ -58,9 +58,8 @@ const apigeejs = require("apigee-edge-js"),
     ]),
   ).bindHelp();
 
-const notDeployed = (result) =>
-  (!result.environment || result.environment.length === 0) &&
-  !result.deployments;
+const isDeployed = (result) =>
+  (result.environment && result.environment.length != 0) || result.deployments;
 
 // process.argv array starts with 'node' and 'scriptname.js'
 let opt = getopt.parse(process.argv.slice(2));
@@ -77,57 +76,67 @@ const getMagicToken = async () => {
   return data.access_token;
 };
 
-function examineRevisions(collection, name, revisions) {
+async function examineRevisions(collection, name, revisions) {
   if (opt.options.verbose) {
     common.logWrite("revisions %s: %s", name, JSON.stringify(revisions));
   }
   if (revisions && revisions.length > opt.options.numToKeep) {
+    // work concurrently, but limit the number of concurrent requests
+    const limit = pLimit(4);
     revisions.sort((a, b) => a - b);
-    let revisionsToExamine = revisions.slice(
+    const revisionsToExamine = revisions.slice(
       0,
       revisions.length - opt.options.numToKeep,
     );
-    revisionsToExamine.reverse();
-
-    // limit the number of concurrent requests
-    const limit = pLimit(4);
-
-    const mapper = (revision) =>
-      limit((_) => {
-        const options = { name, revision };
-        return collection.getDeployments(options).then((result) => {
-          if (opt.options.verbose) {
-            common.logWrite(
-              "deployments (%s r%s): %s",
-              name,
-              revision,
-              JSON.stringify(result),
-            );
-          }
-          return notDeployed(result)
-            ? opt.options["dry-run"]
-              ? revision
-              : collection.del(options).then((_) => revision)
-            : null;
-        });
-      });
-
-    return Promise.all(revisionsToExamine.map(mapper)).then((revisions) => {
-      revisions = revisions.filter((r) => r);
-      if (revisions.length) {
-        if (opt.options["dry-run"]) {
-          common.logWrite(
-            "would delete %s: %s",
-            name,
-            JSON.stringify(revisions),
-          );
-        } else if (opt.options.verbose) {
-          common.logWrite("deleted %s: %s", name, JSON.stringify(revisions));
-        }
-        return { item: name, revisions };
+    const checkRevision = async (revision) => {
+      const options = { name, revision };
+      const result = await collection.getDeployments(options);
+      if (opt.options.verbose) {
+        common.logWrite(
+          "deployments (%s r%s): %s",
+          name,
+          revision,
+          JSON.stringify(result),
+        );
       }
-      return null;
-    });
+      return isDeployed(result) ? null : revision;
+    };
+    const interimResults = await Promise.all(
+      revisionsToExamine.map((c) => limit(() => checkRevision(c))),
+    );
+    const revisionsToRemove = interimResults.filter((r) => r);
+
+    const concurrentDeleter = (revision) =>
+      limit((_) =>
+        opt.options["dry-run"]
+          ? Promise.resolve(revision)
+          : collection.del({ name, revision }).then((_) => revision),
+      );
+
+    return Promise.all(revisionsToRemove.map(concurrentDeleter)).then(
+      (revisions) => {
+        revisions = revisions.filter((r) => r);
+        if (revisions.length) {
+          if (opt.options.verbose) {
+            if (opt.options["dry-run"]) {
+              common.logWrite(
+                "would delete %s: %s",
+                name,
+                JSON.stringify(revisions),
+              );
+            } else {
+              common.logWrite(
+                "deleted %s: %s",
+                name,
+                JSON.stringify(revisions),
+              );
+            }
+          }
+          return { item: name, revisions };
+        }
+        return null;
+      },
+    );
   }
   return Promise.resolve(null);
 }
